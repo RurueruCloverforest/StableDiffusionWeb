@@ -1,0 +1,162 @@
+import type { KeyboardEvent } from 'react';
+import { MainHeader } from '../components/MainHeader';
+import { categoryMeta } from '../state/categories';
+import { previewFragments } from '../state/prompt';
+import { useStore } from '../state/store';
+
+export function MaterialForm() {
+  const { state, dispatch } = useStore();
+  const { matCat, matEdit, matDraft, matNewTag, editSlots, materials } = state;
+  const meta = categoryMeta(matCat);
+  const isEdit = typeof matEdit === 'string';
+
+  const backMeta = matEdit === 'new'
+    ? '新規'
+    : editSlots[matCat] === matEdit
+      ? '作業中に使用'
+      : `${matDraft.tags.length} タグ`;
+
+  const { fragment, rest } = previewFragments(materials, editSlots, matCat, matDraft.tags);
+  const hasTags = matDraft.tags.length > 0;
+
+  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      dispatch({ type: 'ADD_MAT_TAG' });
+    }
+  };
+
+  const handleDelete = () => {
+    if (typeof matEdit !== 'string') return;
+    if (window.confirm('この素材を削除しますか？')) {
+      dispatch({ type: 'DELETE_MAT', id: matEdit });
+    }
+  };
+
+  return (
+    <>
+      <MainHeader title={`${meta.name}を${isEdit ? '編集' : '登録'}`} />
+      <div className="mat-form">
+        <div className="mat-form__main">
+          <div className="mat-form__back-row">
+            <div className="back-link" onClick={() => dispatch({ type: 'CANCEL_MAT_EDIT' })}>
+              ← 一覧
+            </div>
+            <div className="mat-form__back-meta">{backMeta}</div>
+          </div>
+
+          <div className="field field--name">
+            <div className="section-label">名前</div>
+            <input
+              className="text-input"
+              value={matDraft.name}
+              placeholder="例：アリス"
+              onChange={(e) => dispatch({ type: 'SET_MAT_NAME', value: e.target.value })}
+            />
+          </div>
+
+          <div className="field">
+            <div className="field__label-row">
+              <div className="section-label">参照画像</div>
+              <div className="field__hint">見た目の確認用。プロンプトには含まれません</div>
+            </div>
+            <div className="ref-slots">
+              {[0, 1, 2].map((i) => {
+                const filled = i < matDraft.refCount;
+                return filled ? (
+                  <div
+                    key={i}
+                    className="thumb thumb--lg ref-slot is-filled"
+                    onClick={() => dispatch({ type: 'TOGGLE_MAT_REF', index: i })}
+                  />
+                ) : (
+                  <div
+                    key={i}
+                    className="thumb-empty ref-slot is-empty"
+                    onClick={() => dispatch({ type: 'TOGGLE_MAT_REF', index: i })}
+                  >
+                    ＋
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="field">
+            <div className="field__label-row">
+              <div className="section-label">タグ</div>
+              <div className="field__hint">Enter で追加。この順で連結されます</div>
+            </div>
+            <div className="tag-input-box">
+              {matDraft.tags.map((tag, i) => (
+                <div key={`${tag}-${i}`} className="tag-chip">
+                  {tag}
+                  <div className="tag-chip__remove" onClick={() => dispatch({ type: 'REMOVE_MAT_TAG', index: i })}>
+                    ×
+                  </div>
+                </div>
+              ))}
+              <input
+                className="tag-input"
+                value={matNewTag}
+                placeholder="タグを入力"
+                onChange={(e) => dispatch({ type: 'SET_MAT_NEW_TAG', value: e.target.value })}
+                onKeyDown={handleTagKeyDown}
+              />
+            </div>
+          </div>
+
+          <div className="field">
+            <div className="section-label">メモ</div>
+            <input
+              className="text-input field-input--note"
+              value={matDraft.note}
+              placeholder="任意。使いどころ、相性のいい背景など"
+              onChange={(e) => dispatch({ type: 'SET_MAT_NOTE', value: e.target.value })}
+            />
+          </div>
+
+          <div className="mat-form__buttons">
+            <button type="button" className="btn-accent" onClick={() => dispatch({ type: 'SAVE_MAT' })}>
+              保存
+            </button>
+            <button type="button" className="btn-outline" onClick={() => dispatch({ type: 'CANCEL_MAT_EDIT' })}>
+              キャンセル
+            </button>
+            {isEdit && (
+              <button type="button" className="btn-text-danger" onClick={handleDelete}>
+                削除
+              </button>
+            )}
+          </div>
+        </div>
+
+        <aside className="mat-aside">
+          <div className="field">
+            <div className="section-label">この素材の断片</div>
+            <div className="fragment-box">
+              {hasTags ? matDraft.tags.join(', ') : 'タグを追加すると、ここに断片が出ます'}
+            </div>
+          </div>
+          <div className="field">
+            <div className="section-label">合成プレビュー</div>
+            {hasTags ? (
+              <div>
+                <div className="fragment-box fragment-box--preview">
+                  <span style={{ color: 'var(--accent-bright)' }}>{fragment}</span>
+                  {rest}
+                </div>
+                <div className="preview-note">作業中のプロンプトに差し込んだ場合</div>
+              </div>
+            ) : (
+              <div className="fragment-box fragment-box--empty">
+                タグを追加すると、作業中のプロンプトに差し込んだときの結果をここで確認できます。
+              </div>
+            )}
+          </div>
+          <div className="mat-aside__footer">保存後、レシピタブのスロットから選べます</div>
+        </aside>
+      </div>
+    </>
+  );
+}

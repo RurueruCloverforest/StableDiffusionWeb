@@ -8,8 +8,8 @@ export interface Material {
   name: string;
   tags: string[];
   note: string;
-  /** 参照画像。プロトタイプ段階では枚数(最大3)のみを保持し、実データは持たない */
-  refCount: number;
+  /** 参照画像（key visual）の data URL。未設定は null */
+  refImage: string | null;
 }
 
 export interface Publication {
@@ -36,5 +36,5 @@ export interface MaterialDraft {
   name: string;
   tags: string[];
   note: string;
-  refCount: number;
+  refImage: string | null;
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { CATEGORIES } from '../state/categories';
@@ -104,8 +105,6 @@ function ExhibitDetail({
 }) {
   const { isCopied, copy } = useCopy();
   const totalImages = items.reduce((sum, p) => sum + p.count, 0);
-  const findMat = (cat: Category, id: string | null) =>
-    id ? materials.find((m) => m.category === cat && m.id === id) : undefined;
 
   return (
     <>
@@ -116,69 +115,20 @@ function ExhibitDetail({
             ← キャラクター一覧
           </div>
           <div className="exhibit-detail__list">
-            {items.map((p) => {
-              const openUrl = p.httpUrl || p.ipfsUrl;
-              return (
-                <div key={p.id} className="exhibit-item">
-                  <StripedThumb className="exhibit-item__visual" label="key visual" />
-                  <div className="exhibit-item__body">
-                    <div className="exhibit-item__title-row">
-                      <div className="exhibit-item__name">{p.name}</div>
-                      <div className="exhibit-item__meta">
-                        {p.count} 枚  ·  {p.updatedAt}
-                      </div>
-                    </div>
-                    <div className="exhibit-item__chips">
-                      {DETAIL_CHIP_CATEGORIES.map((cat) => {
-                        const mat = findMat(cat.id, slotValue(p, cat.id));
-                        return (
-                          <div key={cat.id} className={`exhibit-chip ${mat ? 'is-set' : 'is-unset'}`}>
-                            <span className="exhibit-chip__cat">{cat.abbr}</span>
-                            {mat ? mat.name : '—'}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="exhibit-item__addrs">
-                      <div className="exhibit-item__addr-row">
-                        <div className="exhibit-item__addr-label" style={{ color: 'var(--accent-dark)' }}>
-                          IPFS
-                        </div>
-                        <div className="exhibit-item__addr-value" style={{ color: 'var(--accent-bright)' }}>
-                          {p.ipfsUrl || '—'}
-                        </div>
-                      </div>
-                      <div className="exhibit-item__addr-row">
-                        <div className="exhibit-item__addr-label" style={{ color: 'var(--text-faintest)' }}>
-                          HTTP
-                        </div>
-                        <div className="exhibit-item__addr-value" style={{ color: 'var(--text-weaker)' }}>
-                          {p.httpUrl || '—'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="exhibit-item__actions">
-                    <div
-                      className="btn-open"
-                      onClick={() => openUrl && window.open(openUrl, '_blank', 'noopener,noreferrer')}
-                    >
-                      開く
-                    </div>
-                    <div className="btn-link" onClick={() => openUrl && copy(`${p.id}:link`, openUrl)}>
-                      {isCopied(`${p.id}:link`) ? 'コピー済み ✓' : 'リンク'}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {items.map((p) => (
+              <ExhibitEntry key={p.id} p={p} materials={materials} isCopied={isCopied} copy={copy} />
+            ))}
           </div>
         </div>
 
         <aside className="exhibit-aside">
           <div className="field">
             <div className="section-label">キャラクター</div>
-            <StripedThumb className="exhibit-aside__visual" label="reference" />
+            {character.refImage ? (
+              <img src={character.refImage} alt="" className="exhibit-aside__visual exhibit-aside__visual--img" />
+            ) : (
+              <StripedThumb className="exhibit-aside__visual" label="reference" />
+            )}
           </div>
           <div className="field">
             <div className="section-label">登録タグ</div>
@@ -188,5 +138,93 @@ function ExhibitDetail({
         </aside>
       </div>
     </>
+  );
+}
+
+function ExhibitEntry({
+  p,
+  materials,
+  isCopied,
+  copy,
+}: {
+  p: Publication;
+  materials: Material[];
+  isCopied: (key: string) => boolean;
+  copy: (key: string, text: string) => void;
+}) {
+  const gallery = [p.thumbnail, ...p.heroImages].filter((src): src is string => !!src);
+  const [active, setActive] = useState<string | null>(gallery[0] ?? null);
+  const openUrl = p.httpUrl || p.ipfsUrl;
+  const findMat = (cat: Category, id: string | null) =>
+    id ? materials.find((m) => m.category === cat && m.id === id) : undefined;
+
+  return (
+    <div className="exhibit-item">
+      <div className="exhibit-item__gallery">
+        {active ? (
+          <img src={active} alt="" className="exhibit-item__visual exhibit-item__visual--img" />
+        ) : (
+          <StripedThumb className="exhibit-item__visual" label="key visual" />
+        )}
+        {gallery.length > 1 && (
+          <div className="exhibit-item__thumbs">
+            {gallery.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt=""
+                className={`exhibit-item__thumb ${active === src ? 'is-active' : ''}`}
+                onClick={() => setActive(src)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="exhibit-item__body">
+        <div className="exhibit-item__title-row">
+          <div className="exhibit-item__name">{p.name}</div>
+          <div className="exhibit-item__meta">
+            {p.count} 枚  ·  {p.updatedAt}
+          </div>
+        </div>
+        <div className="exhibit-item__chips">
+          {DETAIL_CHIP_CATEGORIES.map((cat) => {
+            const mat = findMat(cat.id, slotValue(p, cat.id));
+            return (
+              <div key={cat.id} className={`exhibit-chip ${mat ? 'is-set' : 'is-unset'}`}>
+                <span className="exhibit-chip__cat">{cat.abbr}</span>
+                {mat ? mat.name : '—'}
+              </div>
+            );
+          })}
+        </div>
+        <div className="exhibit-item__addrs">
+          <div className="exhibit-item__addr-row">
+            <div className="exhibit-item__addr-label" style={{ color: 'var(--accent-dark)' }}>
+              IPFS
+            </div>
+            <div className="exhibit-item__addr-value" style={{ color: 'var(--accent-bright)' }}>
+              {p.ipfsUrl || '—'}
+            </div>
+          </div>
+          <div className="exhibit-item__addr-row">
+            <div className="exhibit-item__addr-label" style={{ color: 'var(--text-faintest)' }}>
+              HTTP
+            </div>
+            <div className="exhibit-item__addr-value" style={{ color: 'var(--text-weaker)' }}>
+              {p.httpUrl || '—'}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="exhibit-item__actions">
+        <div className="btn-open" onClick={() => openUrl && window.open(openUrl, '_blank', 'noopener,noreferrer')}>
+          開く
+        </div>
+        <div className="btn-link" onClick={() => openUrl && copy(`${p.id}:link`, openUrl)}>
+          {isCopied(`${p.id}:link`) ? 'コピー済み ✓' : 'リンク'}
+        </div>
+      </div>
+    </div>
   );
 }

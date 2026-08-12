@@ -11,6 +11,21 @@ interface PersistedData {
   publications: Publication[];
 }
 
+const CATEGORY_VALUES: Category[] = ['character', 'situation', 'outfit', 'background', 'effect'];
+
+// 旧スキーマ（refCount など）で保存されたブラウザのデータでも
+// 欠けているフィールドを補って安全に読み込めるようにする
+function normalizeMaterial(raw: Record<string, unknown>): Material {
+  return {
+    id: String(raw.id ?? `mat-${Date.now().toString(36)}`),
+    category: CATEGORY_VALUES.includes(raw.category as Category) ? (raw.category as Category) : 'character',
+    name: typeof raw.name === 'string' ? raw.name : '無題',
+    tags: Array.isArray(raw.tags) ? raw.tags.filter((t): t is string => typeof t === 'string') : [],
+    note: typeof raw.note === 'string' ? raw.note : '',
+    refImage: typeof raw.refImage === 'string' ? raw.refImage : null,
+  };
+}
+
 // 旧スキーマ（hasThumbnail/heroCount 等）で保存されたブラウザのデータでも
 // 欠けているフィールドを補って安全に読み込めるようにする
 function normalizePublication(raw: Record<string, unknown>): Publication {
@@ -38,7 +53,9 @@ function loadPersisted(): PersistedData {
     if (raw) {
       // JSON.parse は any を返す。既知の形に強制せず、フィールドごとに検証しながら読み込む
       const parsed = JSON.parse(raw);
-      const materials = Array.isArray(parsed?.materials) ? (parsed.materials as Material[]) : seedMaterials;
+      const materials = Array.isArray(parsed?.materials)
+        ? (parsed.materials as Record<string, unknown>[]).map(normalizeMaterial)
+        : seedMaterials;
       const publications = Array.isArray(parsed?.publications)
         ? (parsed.publications as Record<string, unknown>[]).map(normalizePublication)
         : seedPublications;
@@ -71,7 +88,7 @@ interface AppState extends PersistedData {
   exChar: string | null;
 }
 
-const emptyDraft: MaterialDraft = { name: '', tags: [], note: '', refCount: 0 };
+const emptyDraft: MaterialDraft = { name: '', tags: [], note: '', refImage: null };
 
 function initialState(): AppState {
   const persisted = loadPersisted();
@@ -104,7 +121,7 @@ type Action =
   | { type: 'SET_MAT_NEW_TAG'; value: string }
   | { type: 'ADD_MAT_TAG' }
   | { type: 'REMOVE_MAT_TAG'; index: number }
-  | { type: 'TOGGLE_MAT_REF'; index: number }
+  | { type: 'SET_MAT_REF_IMAGE'; dataUrl: string | null }
   | { type: 'SAVE_MAT' }
   | { type: 'DELETE_MAT'; id: string }
   | { type: 'SET_PUB_TAB'; tab: 'published' | 'draft' }
@@ -151,7 +168,7 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         matEdit: action.id,
-        matDraft: { name: mat.name, tags: [...mat.tags], note: mat.note, refCount: mat.refCount },
+        matDraft: { name: mat.name, tags: [...mat.tags], note: mat.note, refImage: mat.refImage },
         matNewTag: '',
       };
     }
@@ -184,11 +201,8 @@ function reducer(state: AppState, action: Action): AppState {
         matDraft: { ...state.matDraft, tags: state.matDraft.tags.filter((_, i) => i !== action.index) },
       };
 
-    case 'TOGGLE_MAT_REF': {
-      const { refCount } = state.matDraft;
-      const next = action.index < refCount ? refCount - 1 : Math.min(3, refCount + 1);
-      return { ...state, matDraft: { ...state.matDraft, refCount: next } };
-    }
+    case 'SET_MAT_REF_IMAGE':
+      return { ...state, matDraft: { ...state.matDraft, refImage: action.dataUrl } };
 
     case 'SAVE_MAT': {
       const name = state.matDraft.name.trim();
@@ -200,7 +214,7 @@ function reducer(state: AppState, action: Action): AppState {
           name,
           tags: state.matDraft.tags,
           note: state.matDraft.note,
-          refCount: state.matDraft.refCount,
+          refImage: state.matDraft.refImage,
         };
         return { ...state, materials: [...state.materials, material], matEdit: null };
       }
@@ -210,7 +224,7 @@ function reducer(state: AppState, action: Action): AppState {
           ...state,
           materials: state.materials.map((m) =>
             m.id === id
-              ? { ...m, name, tags: state.matDraft.tags, note: state.matDraft.note, refCount: state.matDraft.refCount }
+              ? { ...m, name, tags: state.matDraft.tags, note: state.matDraft.note, refImage: state.matDraft.refImage }
               : m,
           ),
           matEdit: null,

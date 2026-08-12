@@ -1,6 +1,8 @@
-import type { KeyboardEvent } from 'react';
+import { useRef } from 'react';
+import type { ChangeEvent, KeyboardEvent } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { categoryMeta } from '../state/categories';
+import { readAndResizeImage } from '../state/image';
 import { previewFragments } from '../state/prompt';
 import { useStore } from '../state/store';
 
@@ -9,6 +11,7 @@ export function MaterialForm() {
   const { matCat, matEdit, matDraft, matNewTag, editSlots, materials } = state;
   const meta = categoryMeta(matCat);
   const isEdit = typeof matEdit === 'string';
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const backMeta = matEdit === 'new'
     ? '新規'
@@ -31,6 +34,14 @@ export function MaterialForm() {
     if (window.confirm('この素材を削除しますか？')) {
       dispatch({ type: 'DELETE_MAT', id: matEdit });
     }
+  };
+
+  const handleRefImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const dataUrl = await readAndResizeImage(file);
+    dispatch({ type: 'SET_MAT_REF_IMAGE', dataUrl });
   };
 
   return (
@@ -60,26 +71,36 @@ export function MaterialForm() {
               <div className="section-label">参照画像</div>
               <div className="field__hint">見た目の確認用。プロンプトには含まれません</div>
             </div>
-            <div className="ref-slots">
-              {[0, 1, 2].map((i) => {
-                const filled = i < matDraft.refCount;
-                return filled ? (
-                  <div
-                    key={i}
-                    className="thumb thumb--lg ref-slot is-filled"
-                    onClick={() => dispatch({ type: 'TOGGLE_MAT_REF', index: i })}
-                  />
-                ) : (
-                  <div
-                    key={i}
-                    className="thumb-empty ref-slot is-empty"
-                    onClick={() => dispatch({ type: 'TOGGLE_MAT_REF', index: i })}
-                  >
-                    ＋
-                  </div>
-                );
-              })}
-            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleRefImageChange}
+            />
+            {matDraft.refImage ? (
+              <div className="ref-image-wrap">
+                <img
+                  src={matDraft.refImage}
+                  alt=""
+                  className="ref-slot ref-image is-filled"
+                  onClick={() => fileInputRef.current?.click()}
+                />
+                <div
+                  className="img-remove-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dispatch({ type: 'SET_MAT_REF_IMAGE', dataUrl: null });
+                  }}
+                >
+                  ×
+                </div>
+              </div>
+            ) : (
+              <div className="thumb-empty ref-slot is-empty" onClick={() => fileInputRef.current?.click()}>
+                ＋
+              </div>
+            )}
           </div>
 
           <div className="field">

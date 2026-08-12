@@ -432,6 +432,10 @@ button {
 .slot-row__thumb.is-empty {
   background: rgba(255, 255, 255, 0.04);
 }
+.slot-row__thumb--img {
+  object-fit: cover;
+  display: block;
+}
 .slot-row__body {
   flex: 1;
   min-width: 0;
@@ -534,6 +538,10 @@ button {
   flex: none;
   border-radius: 6px;
 }
+.picker__thumb--img {
+  object-fit: cover;
+  display: block;
+}
 .picker__body {
   min-width: 0;
   flex: 1;
@@ -588,6 +596,11 @@ button {
 }
 .material-card__thumb {
   height: 150px;
+}
+.material-card__thumb--img {
+  width: 100%;
+  object-fit: cover;
+  display: block;
 }
 .material-card__body {
   padding: 10px 12px 12px;
@@ -674,15 +687,20 @@ button {
   font-size: 10.5px;
   color: var(--text-faint);
 }
-.ref-slots {
-  display: flex;
-  gap: 10px;
+.ref-image-wrap {
+  position: relative;
+  width: 104px;
+  height: 104px;
 }
 .ref-slot {
   width: 104px;
   height: 104px;
   border-radius: 9px;
   cursor: pointer;
+}
+.ref-image {
+  object-fit: cover;
+  display: block;
 }
 .ref-slot.is-filled {
   border: 1px solid var(--border);
@@ -1183,11 +1201,43 @@ button {
   background: var(--card-bg);
   border: 1px solid var(--border-panel);
 }
+.exhibit-item__gallery {
+  width: 132px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .exhibit-item__visual {
   width: 132px;
   height: 132px;
   flex: none;
   border-radius: 9px;
+}
+.exhibit-item__visual--img {
+  object-fit: cover;
+  display: block;
+}
+.exhibit-item__thumbs {
+  display: flex;
+  gap: 4px;
+}
+.exhibit-item__thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 1px solid transparent;
+  opacity: 0.6;
+  transition: opacity 0.12s, border-color 0.12s;
+}
+.exhibit-item__thumb:hover {
+  opacity: 0.85;
+}
+.exhibit-item__thumb.is-active {
+  opacity: 1;
+  border-color: var(--accent);
 }
 .exhibit-item__body {
   flex: 1;
@@ -1315,6 +1365,11 @@ button {
   height: 186px;
   border-radius: 9px;
   border: 1px solid var(--border);
+}
+.exhibit-aside__visual--img {
+  width: 100%;
+  object-fit: cover;
+  display: block;
 }
 .exhibit-aside__footer {
   margin-top: auto;

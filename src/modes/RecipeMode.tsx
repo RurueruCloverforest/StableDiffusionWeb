@@ -42,7 +42,11 @@ export function RecipeMode() {
                 >
                   <div className="slot-row__cat">{cat.abbr}</div>
                   {material ? (
-                    <StripedThumb size="sm" className="slot-row__thumb" />
+                    material.refImage ? (
+                      <img src={material.refImage} alt="" className="slot-row__thumb slot-row__thumb--img" />
+                    ) : (
+                      <StripedThumb size="sm" className="slot-row__thumb" />
+                    )
                   ) : (
                     <div className="slot-row__thumb is-empty" />
                   )}
@@ -88,7 +92,11 @@ export function RecipeMode() {
                       className={`picker__row ${selected ? 'is-selected' : ''}`}
                       onClick={() => dispatch({ type: 'SET_SLOT', category: activeSlot, materialId: item.id })}
                     >
-                      <StripedThumb size="md" className="picker__thumb" />
+                      {item.refImage ? (
+                        <img src={item.refImage} alt="" className="picker__thumb picker__thumb--img" />
+                      ) : (
+                        <StripedThumb size="md" className="picker__thumb" />
+                      )}
                       <div className="picker__body">
                         <div className="picker__name">{item.name}</div>
                         <div className="picker__tag">{item.tags.join(', ')}</div>

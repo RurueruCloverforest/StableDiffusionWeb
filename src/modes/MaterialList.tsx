@@ -28,7 +28,11 @@ export function MaterialList() {
               className="material-card"
               onClick={() => dispatch({ type: 'OPEN_MAT_EDIT', id: item.id })}
             >
-              <StripedThumb className="material-card__thumb" label={meta.thumbLabel} />
+              {item.refImage ? (
+                <img src={item.refImage} alt="" className="material-card__thumb material-card__thumb--img" />
+              ) : (
+                <StripedThumb className="material-card__thumb" label={meta.thumbLabel} />
+              )}
               <div className="material-card__body">
                 <div className="material-card__name">{item.name}</div>
                 <div className="material-card__tag">{item.tags.join(', ')}</div>

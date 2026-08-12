@@ -129,6 +129,7 @@ type Action =
   | { type: 'NEW_PUB' }
   | { type: 'SET_PUB_IPFS'; id: string; value: string }
   | { type: 'SET_PUB_HTTP'; id: string; value: string }
+  | { type: 'SET_PUB_COUNT'; id: string; value: number }
   | { type: 'SET_PUB_THUMBNAIL'; id: string; dataUrl: string | null }
   | { type: 'SET_PUB_HERO'; id: string; index: number; dataUrl: string | null }
   | {
@@ -285,6 +286,16 @@ function reducer(state: AppState, action: Action): AppState {
         publications: state.publications.map((p) =>
           p.id === action.id
             ? { ...p, httpUrl: action.value, updatedAt: new Date().toISOString().slice(0, 10) }
+            : p,
+        ),
+      };
+
+    case 'SET_PUB_COUNT':
+      return {
+        ...state,
+        publications: state.publications.map((p) =>
+          p.id === action.id
+            ? { ...p, count: action.value, updatedAt: new Date().toISOString().slice(0, 10) }
             : p,
         ),
       };

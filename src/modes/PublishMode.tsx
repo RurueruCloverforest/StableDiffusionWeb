@@ -239,6 +239,26 @@ export function PublishMode() {
               </div>
             </div>
 
+            <div className="field">
+              <div className="field__label-row">
+                <div className="section-label">収録枚数</div>
+                <div className="field__hint">IPFS に入っている画像の枚数。一覧・展示にそのまま表示されます</div>
+              </div>
+              <input
+                type="number"
+                min={0}
+                className="text-input count-input"
+                value={selected.count}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'SET_PUB_COUNT',
+                    id: selected.id,
+                    value: Math.max(0, parseInt(e.target.value, 10) || 0),
+                  })
+                }
+              />
+            </div>
+
             <div className="prompt-field">
               <div className="field__label-row">
                 <div className="section-label">プロンプト</div>

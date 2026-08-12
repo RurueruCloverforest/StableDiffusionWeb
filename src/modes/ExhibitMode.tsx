@@ -75,7 +75,11 @@ function ExhibitList({
           const totalImages = pubs.reduce((sum, p) => sum + p.count, 0);
           return (
             <button key={c.id} type="button" className="exhibit-card" onClick={() => onSelect(c.id)}>
-              <StripedThumb className="exhibit-card__visual" label="character key visual" />
+              {c.refImage ? (
+                <img src={c.refImage} alt="" className="exhibit-card__visual exhibit-card__visual--img" />
+              ) : (
+                <StripedThumb className="exhibit-card__visual" label="character key visual" />
+              )}
               <div className="exhibit-card__body">
                 <div className="exhibit-card__name">{c.name}</div>
                 <div className="exhibit-card__tag">{c.tags.join(', ')}</div>

@@ -344,6 +344,10 @@ button {
 .text-input:focus {
   border-color: rgba(255, 255, 255, 0.24);
 }
+.count-input {
+  width: 120px;
+  font-family: var(--font-mono);
+}
 
 .thumb {
   background: repeating-linear-gradient(135deg, #1a1f24 0 9px, #20262c 9px 18px);
@@ -1148,6 +1152,11 @@ button {
 }
 .exhibit-card__visual {
   height: 230px;
+}
+.exhibit-card__visual--img {
+  width: 100%;
+  object-fit: cover;
+  display: block;
 }
 .exhibit-card__body {
   padding: 13px 15px 15px;

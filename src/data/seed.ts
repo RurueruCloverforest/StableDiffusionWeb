@@ -34,7 +34,7 @@ export const seedMaterials: Material[] = [
 export const seedPublications: Publication[] = [
   {
     id: 'pub-1',
-    name: 'アリス・教室スチル',
+    name: 'アリス・教室・制服・逆光',
     char: 'chr-1',
     situation: 'sit-1',
     outfit: 'out-1',
@@ -46,11 +46,10 @@ export const seedPublications: Publication[] = [
     heroImages: [null, null, null],
     count: 18,
     updatedAt: '2026-07-20',
-    options: { prompt: true, parts: true, params: false },
   },
   {
     id: 'pub-2',
-    name: 'アリス・夜の街',
+    name: 'アリス・夜の街・カジュアル',
     char: 'chr-1',
     situation: 'sit-2',
     outfit: 'out-2',
@@ -62,11 +61,10 @@ export const seedPublications: Publication[] = [
     heroImages: [null, null, null],
     count: 9,
     updatedAt: '2026-07-28',
-    options: { prompt: true, parts: true, params: false },
   },
   {
     id: 'pub-3',
-    name: 'ミナト・屋上',
+    name: 'ミナト・屋上・ソフトフォーカス',
     char: 'chr-2',
     situation: 'sit-4',
     outfit: null,
@@ -78,11 +76,10 @@ export const seedPublications: Publication[] = [
     heroImages: [null, null, null],
     count: 0,
     updatedAt: '2026-08-01',
-    options: { prompt: true, parts: true, params: false },
   },
   {
     id: 'pub-4',
-    name: 'ユキ・図書館',
+    name: 'ユキ・ドレス・図書館',
     char: 'chr-3',
     situation: null,
     outfit: 'out-3',
@@ -94,6 +91,5 @@ export const seedPublications: Publication[] = [
     heroImages: [null, null, null],
     count: 24,
     updatedAt: '2026-08-05',
-    options: { prompt: true, parts: false, params: true },
   },
 ];

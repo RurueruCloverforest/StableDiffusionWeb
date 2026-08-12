@@ -1,22 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { MainHeader } from '../components/MainHeader';
-import { StripedThumb } from '../components/StripedThumb';
-import { Toggle } from '../components/Toggle';
 import { CATEGORIES } from '../state/categories';
 import { readAndResizeImage } from '../state/image';
 import { composePrompt, matchPromptToMaterials, type SlotMap } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
-import type { Category, Publication, PublicationOptions } from '../types';
+import type { Category, Publication } from '../types';
 
 const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
-
-const PUB_OPTS: { key: keyof PublicationOptions; label: string; desc: string }[] = [
-  { key: 'prompt', label: '合成プロンプト', desc: 'ipfs://…/prompt.txt として同梱' },
-  { key: 'parts', label: '素材の内訳', desc: 'キャラ・状況・服装・背景・演出の一覧' },
-  { key: 'params', label: '生成パラメータ', desc: 'steps / cfg / seed / model' },
-];
+const IPFS_PREFIX = 'ipfs://';
+const HTTP_PREFIX = 'https://';
+const stripPrefix = (value: string, prefix: string) => (value.startsWith(prefix) ? value.slice(prefix.length) : value);
 
 function partId(p: Publication, catId: Category): string | null {
   switch (catId) {
@@ -93,9 +88,14 @@ export function PublishMode() {
     }
   };
 
-  const handleApplyPrompt = () => {
+  const handlePromptChange = (value: string) => {
+    setPromptDraft(value);
     if (!selected) return;
-    const matched = matchPromptToMaterials(materials, promptDraft);
+    if (!value.trim()) {
+      setMatchError(null);
+      return;
+    }
+    const matched = matchPromptToMaterials(materials, value);
     if (!matched || !matched.character) {
       setMatchError(
         '登録済みの素材の組み合わせと完全に一致しませんでした。レシピタブで組んだプロンプトをそのまま貼り付けてください。',
@@ -154,11 +154,7 @@ export function PublishMode() {
         {selected ? (
           <div className="pub-detail">
             <div className="pub-detail__title-row">
-              <input
-                className="pub-detail__name-input"
-                value={selected.name}
-                onChange={(e) => dispatch({ type: 'SET_PUB_NAME', id: selected.id, value: e.target.value })}
-              />
+              <div className="pub-detail__name">{selected.name}</div>
               <div className="pub-detail__meta">
                 {selected.ipfsUrl ? `更新 ${selected.updatedAt}` : 'アドレス未設定 · 展示には出ません'}
               </div>
@@ -243,50 +239,25 @@ export function PublishMode() {
               </div>
             </div>
 
-            <div className="pub-hero-images">
-              <div className="section-label">収録画像</div>
-              <div className="pub-hero-row">
-                <div className="pub-hero-row__thumbs">
-                  {[0, 1, 2, 3].map((i) => (
-                    <StripedThumb key={i} size="sm" className="pub-hero-row__thumb" />
-                  ))}
-                </div>
-                <div className="pub-hero-row__count">
-                  {selected.ipfsUrl
-                    ? `${selected.count} 枚（IPFS から取得）`
-                    : `${selected.count} 枚 · アドレスを入力すると取得します`}
-                </div>
-                <div className="pub-hero-row__note">アプリ側では保持しません</div>
-              </div>
-            </div>
-
             <div className="prompt-field">
               <div className="field__label-row">
                 <div className="section-label">プロンプト</div>
                 <div className="field__hint">
-                  レシピタブで組んだプロンプトを貼り付けて「素材から設定」を押すと、内訳（キャラ・状況・服装・背景・演出）を自動判定します
+                  レシピタブで組んだプロンプトを貼り付けると、内訳（キャラ・状況・服装・背景・演出）を自動判定します
                 </div>
               </div>
               <textarea
                 className="prompt-textarea"
                 value={promptDraft}
-                onChange={(e) => {
-                  setPromptDraft(e.target.value);
-                  setMatchError(null);
-                }}
+                onChange={(e) => handlePromptChange(e.target.value)}
                 placeholder="1girl, silver hair, ..."
               />
-              <div className="prompt-actions">
-                <button type="button" className="btn-outline" onClick={handleApplyPrompt}>
-                  素材から設定
-                </button>
-                <div className="prompt-breakdown">
-                  現在の内訳：
-                  {CATEGORIES.map((c) => {
-                    const mat = materials.find((m) => m.id === partId(selected, c.id));
-                    return `${c.abbr}=${mat ? mat.name : '—'}`;
-                  }).join('  ')}
-                </div>
+              <div className="prompt-breakdown">
+                現在の内訳：
+                {CATEGORIES.map((c) => {
+                  const mat = materials.find((m) => m.id === partId(selected, c.id));
+                  return `${c.abbr}=${mat ? mat.name : '—'}`;
+                }).join('  ')}
               </div>
               {matchError && <div className="prompt-error">{matchError}</div>}
             </div>
@@ -294,15 +265,23 @@ export function PublishMode() {
             <div className="addr-field">
               <div className="field__label-row">
                 <div className="section-label">アドレス</div>
-                <div className="field__hint">ローカルでアップロードした先を貼り付けます</div>
+                <div className="field__hint">ローカルでアップロードした先の ID だけ貼り付けます</div>
               </div>
               <div className="addr-row addr-row--ipfs">
                 <div className="addr-row__label">IPFS</div>
+                <div className="addr-row__prefix">{IPFS_PREFIX}</div>
                 <input
                   className="addr-row__input"
-                  value={selected.ipfsUrl}
-                  placeholder="ipfs://bafybei…"
-                  onChange={(e) => dispatch({ type: 'SET_PUB_IPFS', id: selected.id, value: e.target.value })}
+                  value={stripPrefix(selected.ipfsUrl, IPFS_PREFIX)}
+                  placeholder="bafybei…"
+                  onChange={(e) => {
+                    const suffix = e.target.value;
+                    dispatch({
+                      type: 'SET_PUB_IPFS',
+                      id: selected.id,
+                      value: suffix ? IPFS_PREFIX + suffix : '',
+                    });
+                  }}
                 />
                 <div
                   className="addr-row__copy"
@@ -313,11 +292,19 @@ export function PublishMode() {
               </div>
               <div className="addr-row addr-row--http">
                 <div className="addr-row__label">HTTP</div>
+                <div className="addr-row__prefix">{HTTP_PREFIX}</div>
                 <input
                   className="addr-row__input"
-                  value={selected.httpUrl}
-                  placeholder="https://…（予備・ゲートウェイ）"
-                  onChange={(e) => dispatch({ type: 'SET_PUB_HTTP', id: selected.id, value: e.target.value })}
+                  value={stripPrefix(selected.httpUrl, HTTP_PREFIX)}
+                  placeholder="ipfs.io/ipfs/…（予備・ゲートウェイ）"
+                  onChange={(e) => {
+                    const suffix = e.target.value;
+                    dispatch({
+                      type: 'SET_PUB_HTTP',
+                      id: selected.id,
+                      value: suffix ? HTTP_PREFIX + suffix : '',
+                    });
+                  }}
                 />
                 <div
                   className="addr-row__copy"
@@ -329,36 +316,9 @@ export function PublishMode() {
               <div className="field__hint">IPFS が引けないときは HTTP 側を使います</div>
             </div>
 
-            <div className="pub-opts">
-              <div className="section-label">公開に含める情報</div>
-              <div className="pub-opts__list">
-                {PUB_OPTS.map((o) => (
-                  <div
-                    key={o.key}
-                    className="pub-opt-row"
-                    onClick={() => dispatch({ type: 'TOGGLE_PUB_OPTION', id: selected.id, key: o.key })}
-                  >
-                    <Toggle
-                      on={selected.options[o.key]}
-                      onClick={() => dispatch({ type: 'TOGGLE_PUB_OPTION', id: selected.id, key: o.key })}
-                    />
-                    <div className="pub-opt-row__label">{o.label}</div>
-                    <div className="pub-opt-row__desc">{o.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="pub-detail__buttons">
               <button type="button" className="btn-accent" onClick={flashSaved}>
                 {justSaved ? '保存しました ✓' : '保存'}
-              </button>
-              <button
-                type="button"
-                className="btn-outline"
-                onClick={() => copy('share', selected.httpUrl || selected.ipfsUrl)}
-              >
-                {isCopied('share') ? 'コピーしました ✓' : '共有リンクをコピー'}
               </button>
             </div>
           </div>

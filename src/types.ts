@@ -12,14 +12,9 @@ export interface Material {
   refCount: number;
 }
 
-export interface PublicationOptions {
-  prompt: boolean;
-  parts: boolean;
-  params: boolean;
-}
-
 export interface Publication {
   id: string;
+  /** キャラ・状況・服装・背景・演出の名前を連結した表示名。自動生成のみ、直接編集はしない */
   name: string;
   /** キャラクター素材の id。展示の上位グルーピングキー */
   char: string;
@@ -35,7 +30,6 @@ export interface Publication {
   heroImages: (string | null)[];
   count: number;
   updatedAt: string;
-  options: PublicationOptions;
 }
 
 export interface MaterialDraft {

@@ -20,6 +20,14 @@ export function composePrompt(materials: Material[], slots: SlotMap): string {
   return tags.length ? tags.join(', ') : '—';
 }
 
+/** 解決済みスロットのキャラ・状況・服装・背景・演出の名前を , ではなく ・ で連結した表示名 */
+export function composeName(materials: Material[], slots: SlotMap): string {
+  const names = CATEGORIES.map((c) => findMaterial(materials, slots[c.id])?.name).filter(
+    (n): n is string => !!n,
+  );
+  return names.length ? names.join('・') : '無題';
+}
+
 /**
  * 貼り付けられたプロンプト文字列を、登録済み素材の組み合わせに逆引きする。
  * カテゴリ順（キャラ→状況→服装→背景→演出）に沿って、各カテゴリの素材タグ列が

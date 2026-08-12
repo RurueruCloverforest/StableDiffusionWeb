@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import type { Dispatch, ReactNode } from 'react';
-import type { Category, Material, MaterialDraft, Mode, Publication, PublicationOptions } from '../types';
+import type { Category, Material, MaterialDraft, Mode, Publication } from '../types';
 import { seedMaterials, seedPublications } from '../data/seed';
-import { emptySlots, type SlotMap } from './prompt';
+import { composeName, emptySlots, type SlotMap } from './prompt';
 
 const STORAGE_KEY = 'prompt-studio:data';
 
@@ -15,7 +15,6 @@ interface PersistedData {
 // 欠けているフィールドを補って安全に読み込めるようにする
 function normalizePublication(raw: Record<string, unknown>): Publication {
   const heroSrc: unknown[] = Array.isArray(raw.heroImages) ? raw.heroImages : [];
-  const opts = raw.options as Partial<PublicationOptions> | undefined;
   return {
     id: String(raw.id ?? `pub-${Date.now().toString(36)}`),
     name: typeof raw.name === 'string' ? raw.name : '無題',
@@ -30,11 +29,6 @@ function normalizePublication(raw: Record<string, unknown>): Publication {
     heroImages: [0, 1, 2].map((i) => (typeof heroSrc[i] === 'string' ? heroSrc[i] : null)),
     count: typeof raw.count === 'number' ? raw.count : 0,
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString().slice(0, 10),
-    options: {
-      prompt: typeof opts?.prompt === 'boolean' ? opts.prompt : true,
-      parts: typeof opts?.parts === 'boolean' ? opts.parts : true,
-      params: typeof opts?.params === 'boolean' ? opts.params : false,
-    },
   };
 }
 
@@ -116,10 +110,8 @@ type Action =
   | { type: 'SET_PUB_TAB'; tab: 'published' | 'draft' }
   | { type: 'SELECT_PUB'; id: string }
   | { type: 'NEW_PUB' }
-  | { type: 'SET_PUB_NAME'; id: string; value: string }
   | { type: 'SET_PUB_IPFS'; id: string; value: string }
   | { type: 'SET_PUB_HTTP'; id: string; value: string }
-  | { type: 'TOGGLE_PUB_OPTION'; id: string; key: 'prompt' | 'parts' | 'params' }
   | { type: 'SET_PUB_THUMBNAIL'; id: string; dataUrl: string | null }
   | { type: 'SET_PUB_HERO'; id: string; index: number; dataUrl: string | null }
   | {
@@ -238,9 +230,16 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'NEW_PUB': {
       const firstChar = state.materials.find((m) => m.category === 'character');
+      const slots: SlotMap = {
+        character: firstChar?.id ?? null,
+        situation: null,
+        outfit: null,
+        background: null,
+        effect: null,
+      };
       const pub: Publication = {
         id: `pub-${Date.now().toString(36)}`,
-        name: '新しい公開',
+        name: composeName(state.materials, slots),
         char: firstChar?.id ?? '',
         situation: null,
         outfit: null,
@@ -252,16 +251,9 @@ function reducer(state: AppState, action: Action): AppState {
         heroImages: [null, null, null],
         count: 0,
         updatedAt: new Date().toISOString().slice(0, 10),
-        options: { prompt: true, parts: true, params: false },
       };
       return { ...state, publications: [...state.publications, pub], pubId: pub.id, pubTab: 'draft' };
     }
-
-    case 'SET_PUB_NAME':
-      return {
-        ...state,
-        publications: state.publications.map((p) => (p.id === action.id ? { ...p, name: action.value } : p)),
-      };
 
     case 'SET_PUB_IPFS':
       return {
@@ -280,14 +272,6 @@ function reducer(state: AppState, action: Action): AppState {
           p.id === action.id
             ? { ...p, httpUrl: action.value, updatedAt: new Date().toISOString().slice(0, 10) }
             : p,
-        ),
-      };
-
-    case 'TOGGLE_PUB_OPTION':
-      return {
-        ...state,
-        publications: state.publications.map((p) =>
-          p.id === action.id ? { ...p, options: { ...p.options, [action.key]: !p.options[action.key] } } : p,
         ),
       };
 
@@ -310,13 +294,22 @@ function reducer(state: AppState, action: Action): AppState {
         }),
       };
 
-    case 'SET_PUB_PARTS':
+    case 'SET_PUB_PARTS': {
+      const slots: SlotMap = {
+        character: action.char,
+        situation: action.situation,
+        outfit: action.outfit,
+        background: action.background,
+        effect: action.effect,
+      };
+      const name = composeName(state.materials, slots);
       return {
         ...state,
         publications: state.publications.map((p) =>
           p.id === action.id
             ? {
                 ...p,
+                name,
                 char: action.char,
                 situation: action.situation,
                 outfit: action.outfit,
@@ -327,6 +320,7 @@ function reducer(state: AppState, action: Action): AppState {
             : p,
         ),
       };
+    }
 
     case 'SELECT_EX_CHAR':
       return { ...state, exChar: action.id };

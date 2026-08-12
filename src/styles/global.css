@@ -867,6 +867,9 @@ button {
   background: #14171b;
   border: 1px dashed rgba(255, 255, 255, 0.14);
 }
+.pub-row__thumb--img {
+  object-fit: cover;
+}
 .pub-row__body {
   flex: 1;
   min-width: 0;
@@ -936,12 +939,40 @@ button {
   flex-direction: column;
   gap: 8px;
 }
+.pub-thumb-wrap {
+  position: relative;
+  width: 196px;
+  height: 124px;
+}
 .pub-thumb {
   width: 196px;
   height: 124px;
   border-radius: 9px;
   border: 1px solid var(--border);
   cursor: pointer;
+}
+.pub-thumb--img {
+  object-fit: cover;
+  display: block;
+}
+.img-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.img-remove-btn:hover {
+  background: rgba(0, 0, 0, 0.82);
 }
 .pub-hero-field {
   flex: 1;
@@ -961,6 +992,14 @@ button {
   border-radius: 9px;
   cursor: pointer;
   position: relative;
+  overflow: hidden;
+}
+.pub-hero-slot__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .pub-hero-slot.is-filled {
   border: 1px solid var(--border);
@@ -1010,6 +1049,42 @@ button {
   margin-left: auto;
   font: 400 10px/1 var(--font-mono);
   color: var(--text-faintest);
+}
+
+.prompt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.prompt-textarea {
+  min-height: 72px;
+  padding: 10px 13px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel-bg);
+  color: var(--text-weak);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+}
+.prompt-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+.prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.prompt-breakdown {
+  font: 400 10.5px/1.6 var(--font-mono);
+  color: var(--text-faint);
+}
+.prompt-error {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--danger);
 }
 
 .addr-field {

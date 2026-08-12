@@ -29,8 +29,10 @@ export interface Publication {
   effect: string | null;
   ipfsUrl: string;
   httpUrl: string;
-  hasThumbnail: boolean;
-  heroCount: number;
+  /** data URL（アップロード画像をリサイズして格納）。未設定は null */
+  thumbnail: string | null;
+  /** 代表画像スロット。長さ3固定、未設定要素は null */
+  heroImages: (string | null)[];
   count: number;
   updatedAt: string;
   options: PublicationOptions;

@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { Toggle } from '../components/Toggle';
+import { CATEGORIES } from '../state/categories';
+import { readAndResizeImage } from '../state/image';
+import { composePrompt, matchPromptToMaterials, type SlotMap } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
-import type { PublicationOptions } from '../types';
+import type { Category, Publication, PublicationOptions } from '../types';
 
 const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
@@ -14,11 +18,34 @@ const PUB_OPTS: { key: keyof PublicationOptions; label: string; desc: string }[]
   { key: 'params', label: '生成パラメータ', desc: 'steps / cfg / seed / model' },
 ];
 
+function partId(p: Publication, catId: Category): string | null {
+  switch (catId) {
+    case 'character':
+      return p.char;
+    case 'situation':
+      return p.situation;
+    case 'outfit':
+      return p.outfit;
+    case 'background':
+      return p.background;
+    case 'effect':
+      return p.effect;
+    default:
+      return null;
+  }
+}
+
+type UploadTarget = { kind: 'thumb' } | { kind: 'hero'; index: number };
+
 export function PublishMode() {
   const { state, dispatch } = useStore();
-  const { publications, pubTab, pubId } = state;
+  const { materials, publications, pubTab, pubId } = state;
   const { isCopied, copy } = useCopy();
   const [justSaved, setJustSaved] = useState(false);
+  const [promptDraft, setPromptDraft] = useState('');
+  const [matchError, setMatchError] = useState<string | null>(null);
+  const [pendingUpload, setPendingUpload] = useState<UploadTarget | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const flashSaved = () => {
     setJustSaved(true);
@@ -27,6 +54,65 @@ export function PublishMode() {
 
   const items = publications.filter((p) => (pubTab === 'published' ? p.ipfsUrl !== '' : p.ipfsUrl === ''));
   const selected = publications.find((p) => p.id === pubId) ?? null;
+
+  useEffect(() => {
+    if (!selected) return;
+    const slots: SlotMap = {
+      character: selected.char,
+      situation: selected.situation,
+      outfit: selected.outfit,
+      background: selected.background,
+      effect: selected.effect,
+    };
+    setPromptDraft(composePrompt(materials, slots));
+    setMatchError(null);
+    // 選択中の公開エントリが切り替わった時だけ初期値を入れ直す（編集中の内容は保持する）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
+
+  const openFilePicker = (target: UploadTarget) => {
+    setPendingUpload(target);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    const target = pendingUpload;
+    setPendingUpload(null);
+    if (!file || !selected || !target) return;
+    try {
+      const dataUrl = await readAndResizeImage(file);
+      if (target.kind === 'thumb') {
+        dispatch({ type: 'SET_PUB_THUMBNAIL', id: selected.id, dataUrl });
+      } else {
+        dispatch({ type: 'SET_PUB_HERO', id: selected.id, index: target.index, dataUrl });
+      }
+    } catch {
+      setMatchError('画像の読み込みに失敗しました。別のファイルでお試しください。');
+    }
+  };
+
+  const handleApplyPrompt = () => {
+    if (!selected) return;
+    const matched = matchPromptToMaterials(materials, promptDraft);
+    if (!matched || !matched.character) {
+      setMatchError(
+        '登録済みの素材の組み合わせと完全に一致しませんでした。レシピタブで組んだプロンプトをそのまま貼り付けてください。',
+      );
+      return;
+    }
+    dispatch({
+      type: 'SET_PUB_PARTS',
+      id: selected.id,
+      char: matched.character,
+      situation: matched.situation,
+      outfit: matched.outfit,
+      background: matched.background,
+      effect: matched.effect,
+    });
+    setMatchError(null);
+  };
 
   return (
     <>
@@ -46,8 +132,8 @@ export function PublishMode() {
               className={`pub-row ${pubId === p.id ? 'is-selected' : ''}`}
               onClick={() => dispatch({ type: 'SELECT_PUB', id: p.id })}
             >
-              {p.hasThumbnail ? (
-                <StripedThumb size="md" className="pub-row__thumb" />
+              {p.thumbnail ? (
+                <img src={p.thumbnail} alt="" className="pub-row__thumb pub-row__thumb--img" />
               ) : (
                 <div className="pub-row__thumb is-empty" />
               )}
@@ -78,19 +164,42 @@ export function PublishMode() {
               </div>
             </div>
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+
             <div className="pub-detail__media">
               <div className="pub-thumb-field">
                 <div className="section-label">サムネイル</div>
-                {selected.hasThumbnail ? (
-                  <StripedThumb className="pub-thumb" />
-                ) : (
-                  <div
-                    className="thumb-empty pub-thumb"
-                    onClick={() => dispatch({ type: 'TOGGLE_PUB_THUMB', id: selected.id })}
-                  >
-                    thumbnail 16:10
-                  </div>
-                )}
+                <div className="pub-thumb-wrap">
+                  {selected.thumbnail ? (
+                    <>
+                      <img
+                        src={selected.thumbnail}
+                        alt=""
+                        className="pub-thumb pub-thumb--img"
+                        onClick={() => openFilePicker({ kind: 'thumb' })}
+                      />
+                      <div
+                        className="img-remove-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dispatch({ type: 'SET_PUB_THUMBNAIL', id: selected.id, dataUrl: null });
+                        }}
+                      >
+                        ×
+                      </div>
+                    </>
+                  ) : (
+                    <div className="thumb-empty pub-thumb" onClick={() => openFilePicker({ kind: 'thumb' })}>
+                      thumbnail 16:10
+                    </div>
+                  )}
+                </div>
                 <div className="field__hint">一覧・OGP で使われます</div>
               </div>
 
@@ -101,20 +210,30 @@ export function PublishMode() {
                 </div>
                 <div className="pub-hero-slots">
                   {[0, 1, 2].map((i) => {
-                    const filled = i < selected.heroCount;
-                    return filled ? (
+                    const src = selected.heroImages[i];
+                    return src ? (
                       <div
                         key={i}
-                        className="thumb pub-hero-slot is-filled"
-                        onClick={() => dispatch({ type: 'TOGGLE_PUB_HERO', id: selected.id, index: i })}
+                        className="pub-hero-slot is-filled"
+                        onClick={() => openFilePicker({ kind: 'hero', index: i })}
                       >
+                        <img src={src} alt="" className="pub-hero-slot__img" />
                         <div className="pub-hero-badge">{i + 1}</div>
+                        <div
+                          className="img-remove-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dispatch({ type: 'SET_PUB_HERO', id: selected.id, index: i, dataUrl: null });
+                          }}
+                        >
+                          ×
+                        </div>
                       </div>
                     ) : (
                       <div
                         key={i}
                         className="thumb-empty pub-hero-slot is-empty"
-                        onClick={() => dispatch({ type: 'TOGGLE_PUB_HERO', id: selected.id, index: i })}
+                        onClick={() => openFilePicker({ kind: 'hero', index: i })}
                       >
                         ＋
                       </div>
@@ -139,6 +258,37 @@ export function PublishMode() {
                 </div>
                 <div className="pub-hero-row__note">アプリ側では保持しません</div>
               </div>
+            </div>
+
+            <div className="prompt-field">
+              <div className="field__label-row">
+                <div className="section-label">プロンプト</div>
+                <div className="field__hint">
+                  レシピタブで組んだプロンプトを貼り付けて「素材から設定」を押すと、内訳（キャラ・状況・服装・背景・演出）を自動判定します
+                </div>
+              </div>
+              <textarea
+                className="prompt-textarea"
+                value={promptDraft}
+                onChange={(e) => {
+                  setPromptDraft(e.target.value);
+                  setMatchError(null);
+                }}
+                placeholder="1girl, silver hair, ..."
+              />
+              <div className="prompt-actions">
+                <button type="button" className="btn-outline" onClick={handleApplyPrompt}>
+                  素材から設定
+                </button>
+                <div className="prompt-breakdown">
+                  現在の内訳：
+                  {CATEGORIES.map((c) => {
+                    const mat = materials.find((m) => m.id === partId(selected, c.id));
+                    return `${c.abbr}=${mat ? mat.name : '—'}`;
+                  }).join('  ')}
+                </div>
+              </div>
+              {matchError && <div className="prompt-error">{matchError}</div>}
             </div>
 
             <div className="addr-field">

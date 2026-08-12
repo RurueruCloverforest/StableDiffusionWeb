@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import type { Dispatch, ReactNode } from 'react';
-import type { Category, Material, MaterialDraft, Mode, Publication } from '../types';
+import type { Category, Material, MaterialDraft, Mode, Publication, PublicationOptions } from '../types';
 import { seedMaterials, seedPublications } from '../data/seed';
 import { emptySlots, type SlotMap } from './prompt';
 
@@ -11,10 +11,45 @@ interface PersistedData {
   publications: Publication[];
 }
 
+// 旧スキーマ（hasThumbnail/heroCount 等）で保存されたブラウザのデータでも
+// 欠けているフィールドを補って安全に読み込めるようにする
+function normalizePublication(raw: Record<string, unknown>): Publication {
+  const heroSrc: unknown[] = Array.isArray(raw.heroImages) ? raw.heroImages : [];
+  const opts = raw.options as Partial<PublicationOptions> | undefined;
+  return {
+    id: String(raw.id ?? `pub-${Date.now().toString(36)}`),
+    name: typeof raw.name === 'string' ? raw.name : '無題',
+    char: typeof raw.char === 'string' ? raw.char : '',
+    situation: typeof raw.situation === 'string' ? raw.situation : null,
+    outfit: typeof raw.outfit === 'string' ? raw.outfit : null,
+    background: typeof raw.background === 'string' ? raw.background : null,
+    effect: typeof raw.effect === 'string' ? raw.effect : null,
+    ipfsUrl: typeof raw.ipfsUrl === 'string' ? raw.ipfsUrl : '',
+    httpUrl: typeof raw.httpUrl === 'string' ? raw.httpUrl : '',
+    thumbnail: typeof raw.thumbnail === 'string' ? raw.thumbnail : null,
+    heroImages: [0, 1, 2].map((i) => (typeof heroSrc[i] === 'string' ? heroSrc[i] : null)),
+    count: typeof raw.count === 'number' ? raw.count : 0,
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString().slice(0, 10),
+    options: {
+      prompt: typeof opts?.prompt === 'boolean' ? opts.prompt : true,
+      parts: typeof opts?.parts === 'boolean' ? opts.parts : true,
+      params: typeof opts?.params === 'boolean' ? opts.params : false,
+    },
+  };
+}
+
 function loadPersisted(): PersistedData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as PersistedData;
+    if (raw) {
+      // JSON.parse は any を返す。既知の形に強制せず、フィールドごとに検証しながら読み込む
+      const parsed = JSON.parse(raw);
+      const materials = Array.isArray(parsed?.materials) ? (parsed.materials as Material[]) : seedMaterials;
+      const publications = Array.isArray(parsed?.publications)
+        ? (parsed.publications as Record<string, unknown>[]).map(normalizePublication)
+        : seedPublications;
+      return { materials, publications };
+    }
   } catch {
     // 壊れたデータは無視してシードにフォールバック
   }
@@ -85,8 +120,17 @@ type Action =
   | { type: 'SET_PUB_IPFS'; id: string; value: string }
   | { type: 'SET_PUB_HTTP'; id: string; value: string }
   | { type: 'TOGGLE_PUB_OPTION'; id: string; key: 'prompt' | 'parts' | 'params' }
-  | { type: 'TOGGLE_PUB_THUMB'; id: string }
-  | { type: 'TOGGLE_PUB_HERO'; id: string; index: number }
+  | { type: 'SET_PUB_THUMBNAIL'; id: string; dataUrl: string | null }
+  | { type: 'SET_PUB_HERO'; id: string; index: number; dataUrl: string | null }
+  | {
+      type: 'SET_PUB_PARTS';
+      id: string;
+      char: string;
+      situation: string | null;
+      outfit: string | null;
+      background: string | null;
+      effect: string | null;
+    }
   | { type: 'SELECT_EX_CHAR'; id: string | null };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -204,8 +248,8 @@ function reducer(state: AppState, action: Action): AppState {
         effect: null,
         ipfsUrl: '',
         httpUrl: '',
-        hasThumbnail: false,
-        heroCount: 0,
+        thumbnail: null,
+        heroImages: [null, null, null],
         count: 0,
         updatedAt: new Date().toISOString().slice(0, 10),
         options: { prompt: true, parts: true, params: false },
@@ -247,22 +291,41 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
 
-    case 'TOGGLE_PUB_THUMB':
+    case 'SET_PUB_THUMBNAIL':
       return {
         ...state,
         publications: state.publications.map((p) =>
-          p.id === action.id ? { ...p, hasThumbnail: !p.hasThumbnail } : p,
+          p.id === action.id ? { ...p, thumbnail: action.dataUrl } : p,
         ),
       };
 
-    case 'TOGGLE_PUB_HERO':
+    case 'SET_PUB_HERO':
       return {
         ...state,
         publications: state.publications.map((p) => {
           if (p.id !== action.id) return p;
-          const next = action.index < p.heroCount ? p.heroCount - 1 : Math.min(3, p.heroCount + 1);
-          return { ...p, heroCount: next };
+          const heroImages = [...p.heroImages];
+          heroImages[action.index] = action.dataUrl;
+          return { ...p, heroImages };
         }),
+      };
+
+    case 'SET_PUB_PARTS':
+      return {
+        ...state,
+        publications: state.publications.map((p) =>
+          p.id === action.id
+            ? {
+                ...p,
+                char: action.char,
+                situation: action.situation,
+                outfit: action.outfit,
+                background: action.background,
+                effect: action.effect,
+                updatedAt: new Date().toISOString().slice(0, 10),
+              }
+            : p,
+        ),
       };
 
     case 'SELECT_EX_CHAR':

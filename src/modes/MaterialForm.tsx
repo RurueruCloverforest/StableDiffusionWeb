@@ -29,6 +29,20 @@ export function MaterialForm() {
     }
   };
 
+  const handleTagInputChange = (value: string) => {
+    if (!value.includes(',')) {
+      dispatch({ type: 'SET_MAT_NEW_TAG', value });
+      return;
+    }
+    const parts = value.split(',');
+    const remainder = parts.pop() ?? '';
+    const complete = parts.map((t) => t.trim()).filter((t) => t.length > 0);
+    if (complete.length > 0) {
+      dispatch({ type: 'ADD_MAT_TAGS', values: complete });
+    }
+    dispatch({ type: 'SET_MAT_NEW_TAG', value: remainder.trimStart() });
+  };
+
   const handleDelete = () => {
     if (typeof matEdit !== 'string') return;
     if (window.confirm('この素材を削除しますか？')) {
@@ -106,7 +120,7 @@ export function MaterialForm() {
           <div className="field">
             <div className="field__label-row">
               <div className="section-label">タグ</div>
-              <div className="field__hint">Enter で追加。この順で連結されます</div>
+              <div className="field__hint">Enter または , で追加。この順で連結されます</div>
             </div>
             <div className="tag-input-box">
               {matDraft.tags.map((tag, i) => (
@@ -120,8 +134,8 @@ export function MaterialForm() {
               <input
                 className="tag-input"
                 value={matNewTag}
-                placeholder="タグを入力"
-                onChange={(e) => dispatch({ type: 'SET_MAT_NEW_TAG', value: e.target.value })}
+                placeholder="タグを入力（, 区切りでまとめて追加できます）"
+                onChange={(e) => handleTagInputChange(e.target.value)}
                 onKeyDown={handleTagKeyDown}
               />
             </div>

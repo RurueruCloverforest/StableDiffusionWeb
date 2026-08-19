@@ -50,6 +50,7 @@ export function PublishMode() {
 
   const items = publications.filter((p) => (pubTab === 'published' ? p.ipfsUrl !== '' : p.ipfsUrl === ''));
   const selected = publications.find((p) => p.id === pubId) ?? null;
+  const allPartsDetected = selected ? CATEGORIES.every((c) => partId(selected, c.id) !== null) : false;
 
   useEffect(() => {
     if (!selected) return;
@@ -279,12 +280,16 @@ export function PublishMode() {
                 onChange={(e) => handlePromptChange(e.target.value)}
                 placeholder="1girl, silver hair, ..."
               />
-              <div className="prompt-breakdown">
-                現在の内訳：
+              <div className="prompt-parts">
                 {CATEGORIES.map((c) => {
                   const mat = materials.find((m) => m.id === partId(selected, c.id));
-                  return `${c.abbr}=${mat ? mat.name : '—'}`;
-                }).join('  ')}
+                  return (
+                    <div key={c.id} className={`exhibit-chip prompt-part ${mat ? 'is-set' : 'is-unset'}`}>
+                      <span className="exhibit-chip__cat">{c.abbr}</span>
+                      {mat ? mat.name : '未検出'}
+                    </div>
+                  );
+                })}
               </div>
               {matchError && <div className="prompt-error">{matchError}</div>}
             </div>
@@ -344,9 +349,12 @@ export function PublishMode() {
             </div>
 
             <div className="pub-detail__buttons">
-              <button type="button" className="btn-accent" onClick={flashSaved}>
+              <button type="button" className="btn-accent" onClick={flashSaved} disabled={!allPartsDetected}>
                 {justSaved ? '保存しました ✓' : '保存'}
               </button>
+              {!allPartsDetected && (
+                <div className="pub-detail__save-hint">キャラ・状況・服装・背景・演出をすべて検出すると保存できます</div>
+              )}
             </div>
           </div>
         ) : (

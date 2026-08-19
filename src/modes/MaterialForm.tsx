@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import type { ChangeEvent, KeyboardEvent } from 'react';
+import { useRef, useState } from 'react';
+import type { ChangeEvent, DragEvent, KeyboardEvent } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { categoryMeta } from '../state/categories';
 import { readAndResizeImage } from '../state/image';
@@ -12,6 +12,8 @@ export function MaterialForm() {
   const meta = categoryMeta(matCat);
   const isEdit = typeof matEdit === 'string';
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
 
   const backMeta = matEdit === 'new'
     ? '新規'
@@ -56,6 +58,30 @@ export function MaterialForm() {
     if (!file) return;
     const dataUrl = await readAndResizeImage(file);
     dispatch({ type: 'SET_MAT_REF_IMAGE', dataUrl });
+  };
+
+  const handleTagDragStart = (index: number) => (e: DragEvent<HTMLDivElement>) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleTagDragOver = (index: number) => (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (dragIndex !== null && index !== overIndex) setOverIndex(index);
+  };
+
+  const handleTagDrop = (index: number) => (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (dragIndex !== null && dragIndex !== index) {
+      dispatch({ type: 'REORDER_MAT_TAG', from: dragIndex, to: index });
+    }
+    setDragIndex(null);
+    setOverIndex(null);
+  };
+
+  const handleTagDragEnd = () => {
+    setDragIndex(null);
+    setOverIndex(null);
   };
 
   return (
@@ -120,11 +146,21 @@ export function MaterialForm() {
           <div className="field">
             <div className="field__label-row">
               <div className="section-label">タグ</div>
-              <div className="field__hint">Enter または , で追加。この順で連結されます</div>
+              <div className="field__hint">Enter または , で追加。この順で連結されます。ドラッグで並べ替え</div>
             </div>
             <div className="tag-input-box">
               {matDraft.tags.map((tag, i) => (
-                <div key={`${tag}-${i}`} className="tag-chip">
+                <div
+                  key={`${tag}-${i}`}
+                  className={`tag-chip ${dragIndex === i ? 'is-dragging' : ''} ${
+                    overIndex === i && dragIndex !== null && dragIndex !== i ? 'is-drop-target' : ''
+                  }`}
+                  draggable
+                  onDragStart={handleTagDragStart(i)}
+                  onDragOver={handleTagDragOver(i)}
+                  onDrop={handleTagDrop(i)}
+                  onDragEnd={handleTagDragEnd}
+                >
                   {tag}
                   <div className="tag-chip__remove" onClick={() => dispatch({ type: 'REMOVE_MAT_TAG', index: i })}>
                     ×

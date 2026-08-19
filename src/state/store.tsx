@@ -121,6 +121,7 @@ type Action =
   | { type: 'SET_MAT_NEW_TAG'; value: string }
   | { type: 'ADD_MAT_TAG' }
   | { type: 'REMOVE_MAT_TAG'; index: number }
+  | { type: 'REORDER_MAT_TAG'; from: number; to: number }
   | { type: 'ADD_MAT_TAGS'; values: string[] }
   | { type: 'SET_MAT_REF_IMAGE'; dataUrl: string | null }
   | { type: 'SAVE_MAT' }
@@ -208,6 +209,14 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         matDraft: { ...state.matDraft, tags: [...state.matDraft.tags, ...action.values] },
       };
+
+    case 'REORDER_MAT_TAG': {
+      if (action.from === action.to) return state;
+      const tags = [...state.matDraft.tags];
+      const [moved] = tags.splice(action.from, 1);
+      tags.splice(action.to, 0, moved);
+      return { ...state, matDraft: { ...state.matDraft, tags } };
+    }
 
     case 'SET_MAT_REF_IMAGE':
       return { ...state, matDraft: { ...state.matDraft, refImage: action.dataUrl } };

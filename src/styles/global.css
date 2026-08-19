@@ -734,6 +734,16 @@ button {
   border: 1px solid rgba(79, 178, 134, 0.28);
   font: 400 11px/1 var(--font-mono);
   color: var(--accent-bright);
+  cursor: grab;
+  transition: opacity 0.12s, border-color 0.12s, background 0.12s;
+}
+.tag-chip.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+.tag-chip.is-drop-target {
+  border-color: var(--accent);
+  background: rgba(79, 178, 134, 0.24);
 }
 .tag-chip__remove {
   width: 15px;

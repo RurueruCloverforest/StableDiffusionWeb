@@ -105,7 +105,7 @@ export function PublishMode() {
     const matched = matchPromptToMaterials(materials, value);
     if (!matched || !matched.character) {
       setMatchError(
-        '登録済みの素材の組み合わせと完全に一致しませんでした。レシピタブで組んだプロンプトをそのまま貼り付けてください。',
+        'キャラに該当する登録済み素材が見つかりませんでした。レシピタブで組んだプロンプトを含めて貼り付けてください。',
       );
       return;
     }

@@ -29,7 +29,7 @@ export function composeName(materials: Material[], slots: SlotMap): string {
 }
 
 /** タグ列 tags の中に、block と完全一致する連続した並びが存在するか */
-function containsBlock(tags: string[], block: string[]): boolean {
+export function containsBlock(tags: string[], block: string[]): boolean {
   if (block.length === 0) return false;
   for (let i = 0; i + block.length <= tags.length; i++) {
     let matches = true;

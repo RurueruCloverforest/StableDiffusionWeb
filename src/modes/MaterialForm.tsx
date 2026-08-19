@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent, KeyboardEvent } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { categoryMeta } from '../state/categories';
 import { readAndResizeImage } from '../state/image';
-import { previewFragments } from '../state/prompt';
+import { containsBlock, previewFragments } from '../state/prompt';
 import { useStore } from '../state/store';
 
 export function MaterialForm() {
@@ -14,6 +14,11 @@ export function MaterialForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSaveError(null);
+  }, [matDraft.tags]);
 
   const backMeta = matEdit === 'new'
     ? '新規'
@@ -50,6 +55,25 @@ export function MaterialForm() {
     if (window.confirm('この素材を削除しますか？')) {
       dispatch({ type: 'DELETE_MAT', id: matEdit });
     }
+  };
+
+  const findTagConflict = () => {
+    if (matDraft.tags.length === 0) return null;
+    const others = materials.filter(
+      (m) => m.category === matCat && m.id !== matEdit && m.tags.length > 0,
+    );
+    return (
+      others.find((m) => containsBlock(matDraft.tags, m.tags) || containsBlock(m.tags, matDraft.tags)) ?? null
+    );
+  };
+
+  const handleSave = () => {
+    const conflict = findTagConflict();
+    if (conflict) {
+      setSaveError(`タグの並びが既存の素材「${conflict.name}」と重複／包含関係にあります。どちらかのタグを見直してください。`);
+      return;
+    }
+    dispatch({ type: 'SAVE_MAT' });
   };
 
   const handleRefImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -187,8 +211,10 @@ export function MaterialForm() {
             />
           </div>
 
+          {saveError && <div className="prompt-error">{saveError}</div>}
+
           <div className="mat-form__buttons">
-            <button type="button" className="btn-accent" onClick={() => dispatch({ type: 'SAVE_MAT' })}>
+            <button type="button" className="btn-accent" onClick={handleSave}>
               保存
             </button>
             <button type="button" className="btn-outline" onClick={() => dispatch({ type: 'CANCEL_MAT_EDIT' })}>

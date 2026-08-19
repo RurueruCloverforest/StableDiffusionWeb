@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { CATEGORIES } from '../state/categories';
 import { readAndResizeImage } from '../state/image';
+import { extractPromptFromPng } from '../state/pngMetadata';
 import { composePrompt, matchPromptToMaterials, type SlotMap } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
@@ -80,6 +81,12 @@ export function PublishMode() {
       const dataUrl = await readAndResizeImage(file);
       if (target.kind === 'thumb') {
         dispatch({ type: 'SET_PUB_THUMBNAIL', id: selected.id, dataUrl });
+        // SD系ツールが生成したPNGならparametersチャンクの1行目にプロンプトが入っている。
+        // 見つかった場合のみ、既存のプロンプト内容を上書きして自動設定する
+        const extractedPrompt = await extractPromptFromPng(file);
+        if (extractedPrompt) {
+          handlePromptChange(extractedPrompt);
+        }
       } else {
         dispatch({ type: 'SET_PUB_HERO', id: selected.id, index: target.index, dataUrl });
       }

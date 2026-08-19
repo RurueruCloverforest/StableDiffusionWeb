@@ -28,12 +28,29 @@ export function composeName(materials: Material[], slots: SlotMap): string {
   return names.length ? names.join('・') : '無題';
 }
 
+/** タグ列 tags の中に、block と完全一致する連続した並びが存在するか */
+export function containsBlock(tags: string[], block: string[]): boolean {
+  if (block.length === 0) return false;
+  for (let i = 0; i + block.length <= tags.length; i++) {
+    let matches = true;
+    for (let j = 0; j < block.length; j++) {
+      if (tags[i + j] !== block[j]) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) return true;
+  }
+  return false;
+}
+
 /**
- * 貼り付けられたプロンプト文字列を、登録済み素材の組み合わせに逆引きする。
- * カテゴリ順（キャラ→状況→服装→背景→演出）に沿って、各カテゴリの素材タグ列が
- * 先頭から連続一致するかをバックトラックで探索する。キャラは必須（スキップ不可）、
- * 他4カテゴリは未設定（タグ0個）を許容する。全トークンを過不足なく消費できる
- * 組み合わせが1つも無ければ null（＝このアプリが生成したプロンプトではない）。
+ * 貼り付けられたプロンプト文字列から、登録済み素材の組み合わせを逆引きする。
+ * カテゴリごとに「そのタグ列がプロンプト中にひとかたまり（連続・順序一致）で
+ * 含まれている素材」を探して採用する。実際の生成時に付け足された品質タグなど、
+ * 素材に登録されていない余分なタグがプロンプト側にあっても構わない
+ * （= 完全一致ではなく包含判定）。キャラに該当する素材が1つも見つからなければ
+ * null（＝このアプリの素材から生成されたプロンプトではないと判断）。
  */
 export function matchPromptToMaterials(materials: Material[], promptText: string): SlotMap | null {
   const tags = promptText
@@ -41,38 +58,14 @@ export function matchPromptToMaterials(materials: Material[], promptText: string
     .map((t) => t.trim())
     .filter((t) => t.length > 0);
 
-  const byCategory = (cat: Category) => materials.filter((m) => m.category === cat && m.tags.length > 0);
+  const result = emptySlots();
+  for (const cat of CATEGORIES) {
+    const candidates = materials.filter((m) => m.category === cat.id && m.tags.length > 0);
+    const found = candidates.find((m) => containsBlock(tags, m.tags));
+    result[cat.id] = found?.id ?? null;
+  }
 
-  const backtrack = (catIndex: number, pos: number, acc: SlotMap): SlotMap | null => {
-    if (catIndex === CATEGORIES.length) {
-      return pos === tags.length ? acc : null;
-    }
-    const cat = CATEGORIES[catIndex].id;
-
-    for (const mat of byCategory(cat)) {
-      const len = mat.tags.length;
-      if (pos + len > tags.length) continue;
-      let matches = true;
-      for (let i = 0; i < len; i++) {
-        if (tags[pos + i] !== mat.tags[i]) {
-          matches = false;
-          break;
-        }
-      }
-      if (matches) {
-        const result = backtrack(catIndex + 1, pos + len, { ...acc, [cat]: mat.id });
-        if (result) return result;
-      }
-    }
-
-    if (cat !== 'character') {
-      const result = backtrack(catIndex + 1, pos, { ...acc, [cat]: null });
-      if (result) return result;
-    }
-    return null;
-  };
-
-  return backtrack(0, 0, emptySlots());
+  return result.character ? result : null;
 }
 
 /** 素材フォームでの合成プレビュー: 編集中のタグ + 作業中プロンプトの他カテゴリのタグ */

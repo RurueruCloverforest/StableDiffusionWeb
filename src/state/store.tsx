@@ -87,8 +87,10 @@ interface AppState extends PersistedData {
   pubTab: 'published' | 'draft';
   pubId: string | null;
 
-  // 展示
+  // 展示（キャラ→状況→服装の階層。string | null: 選択中の素材id、または EXHIBIT_UNSET センチネル）
   exChar: string | null;
+  exSituation: string | null;
+  exOutfit: string | null;
 }
 
 const emptyDraft: MaterialDraft = { name: '', tags: [], note: '', refImage: null };
@@ -118,6 +120,8 @@ function initialState(): AppState {
     pubTab: firstPub && firstPub.ipfsUrl !== '' ? 'published' : 'draft',
     pubId: firstPub?.id ?? null,
     exChar: null,
+    exSituation: null,
+    exOutfit: null,
   };
 }
 
@@ -160,7 +164,9 @@ type Action =
       background: string | null;
       effect: string | null;
     }
-  | { type: 'SELECT_EX_CHAR'; id: string | null };
+  | { type: 'SELECT_EX_CHAR'; id: string | null }
+  | { type: 'SELECT_EX_SITUATION'; id: string | null }
+  | { type: 'SELECT_EX_OUTFIT'; id: string | null };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -405,7 +411,13 @@ function reducer(state: AppState, action: Action): AppState {
     }
 
     case 'SELECT_EX_CHAR':
-      return { ...state, exChar: action.id };
+      return { ...state, exChar: action.id, exSituation: null, exOutfit: null };
+
+    case 'SELECT_EX_SITUATION':
+      return { ...state, exSituation: action.id, exOutfit: null };
+
+    case 'SELECT_EX_OUTFIT':
+      return { ...state, exOutfit: action.id };
 
     default:
       return state;

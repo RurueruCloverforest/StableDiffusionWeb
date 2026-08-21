@@ -1221,6 +1221,19 @@ button {
   gap: 18px;
   align-content: start;
 }
+.exhibit-grid-page {
+  flex: 1;
+  overflow: auto;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.exhibit-grid--nested {
+  flex: none;
+  overflow: visible;
+  padding: 0;
+}
 .exhibit-card {
   border-radius: 12px;
   overflow: hidden;

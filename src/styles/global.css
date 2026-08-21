@@ -53,6 +53,9 @@ body {
 input {
   font-family: inherit;
 }
+input[type='checkbox'] {
+  accent-color: var(--accent);
+}
 input::placeholder {
   color: var(--placeholder-text);
 }
@@ -404,6 +407,19 @@ button {
   flex-direction: column;
   gap: 16px;
 }
+.recipe__random-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.recipe__random-mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-weaker);
+  cursor: pointer;
+}
 .recipe__slots {
   display: flex;
   flex-direction: column;
@@ -472,6 +488,16 @@ button {
 }
 .slot-row__tag.is-empty {
   color: var(--text-faintest);
+}
+.slot-row__lock {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 8px;
+  font: 400 10px/1 var(--font-mono);
+  color: var(--text-faintest);
+  cursor: pointer;
 }
 
 .composed {

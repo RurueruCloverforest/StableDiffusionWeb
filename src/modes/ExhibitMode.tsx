@@ -2,26 +2,12 @@ import { useState } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { CATEGORIES } from '../state/categories';
+import { publicationSlotValue } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
 import type { Category, Material, Publication } from '../types';
 
 const DETAIL_CHIP_CATEGORIES = CATEGORIES.filter((c) => c.id !== 'character');
-
-function slotValue(p: Publication, catId: Category): string | null {
-  switch (catId) {
-    case 'situation':
-      return p.situation;
-    case 'outfit':
-      return p.outfit;
-    case 'background':
-      return p.background;
-    case 'effect':
-      return p.effect;
-    default:
-      return null;
-  }
-}
 
 export function ExhibitMode() {
   const { state, dispatch } = useStore();
@@ -193,7 +179,7 @@ function ExhibitEntry({
         </div>
         <div className="exhibit-item__chips">
           {DETAIL_CHIP_CATEGORIES.map((cat) => {
-            const mat = findMat(cat.id, slotValue(p, cat.id));
+            const mat = findMat(cat.id, publicationSlotValue(p, cat.id));
             return (
               <div key={cat.id} className={`exhibit-chip ${mat ? 'is-set' : 'is-unset'}`}>
                 <span className="exhibit-chip__cat">{cat.abbr}</span>

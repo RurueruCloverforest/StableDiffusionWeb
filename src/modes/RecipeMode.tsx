@@ -7,7 +7,7 @@ import { useCopy } from '../state/useCopy';
 
 export function RecipeMode() {
   const { state, dispatch } = useStore();
-  const { materials, editSlots, activeSlot } = state;
+  const { materials, editSlots, activeSlot, lockedSlots, randomWeighted } = state;
   const { isCopied, copy } = useCopy();
 
   const composed = composePrompt(materials, editSlots);
@@ -29,6 +29,20 @@ export function RecipeMode() {
       <MainHeader title="プロンプトを組む" meta="素材を選ぶとその場で合成されます" />
       <div className="recipe">
         <div className="recipe__left">
+          <div className="recipe__random-bar">
+            <button type="button" className="btn-outline" onClick={() => dispatch({ type: 'RANDOMIZE_SLOTS' })}>
+              ランダム
+            </button>
+            <label className="recipe__random-mode">
+              <input
+                type="checkbox"
+                checked={randomWeighted}
+                onChange={() => dispatch({ type: 'TOGGLE_RANDOM_WEIGHTED' })}
+              />
+              展示の少ない素材を優先
+            </label>
+          </div>
+
           <div className="recipe__slots">
             {CATEGORIES.map((cat) => {
               const materialId = editSlots[cat.id];
@@ -56,6 +70,14 @@ export function RecipeMode() {
                       {material ? material.tags.join(', ') : 'クリックして選ぶ'}
                     </div>
                   </div>
+                  <label className="slot-row__lock" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={lockedSlots[cat.id]}
+                      onChange={() => dispatch({ type: 'TOGGLE_SLOT_LOCK', category: cat.id })}
+                    />
+                    固定
+                  </label>
                 </button>
               );
             })}

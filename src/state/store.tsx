@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import type { Dispatch, ReactNode } from 'react';
 import type { Category, Material, MaterialDraft, Mode, Publication } from '../types';
 import { seedMaterials, seedPublications } from '../data/seed';
-import { composeName, emptySlots, type SlotMap } from './prompt';
+import { composeName, emptySlots, randomizeSlots, type SlotMap } from './prompt';
 
 const STORAGE_KEY = 'prompt-studio:data';
 
@@ -73,6 +73,8 @@ interface AppState extends PersistedData {
   // レシピ
   editSlots: SlotMap;
   activeSlot: Category | null;
+  lockedSlots: Record<Category, boolean>;
+  randomWeighted: boolean;
 
   // 素材
   matCat: Category;
@@ -90,6 +92,14 @@ interface AppState extends PersistedData {
 
 const emptyDraft: MaterialDraft = { name: '', tags: [], note: '', refImage: null };
 
+const emptyLocks = (): Record<Category, boolean> => ({
+  character: false,
+  situation: false,
+  outfit: false,
+  background: false,
+  effect: false,
+});
+
 function initialState(): AppState {
   const persisted = loadPersisted();
   const firstPub = persisted.publications.find((p) => p.ipfsUrl !== '') ?? persisted.publications[0] ?? null;
@@ -98,6 +108,8 @@ function initialState(): AppState {
     mode: 'recipe',
     editSlots: emptySlots(),
     activeSlot: null,
+    lockedSlots: emptyLocks(),
+    randomWeighted: false,
     matCat: 'character',
     matEdit: null,
     matDraft: emptyDraft,
@@ -112,6 +124,9 @@ type Action =
   | { type: 'SET_MODE'; mode: Mode }
   | { type: 'SELECT_SLOT'; category: Category }
   | { type: 'SET_SLOT'; category: Category; materialId: string }
+  | { type: 'TOGGLE_SLOT_LOCK'; category: Category }
+  | { type: 'TOGGLE_RANDOM_WEIGHTED' }
+  | { type: 'RANDOMIZE_SLOTS' }
   | { type: 'SET_MAT_CAT'; category: Category }
   | { type: 'OPEN_MAT_NEW' }
   | { type: 'OPEN_MAT_EDIT'; id: string }
@@ -158,6 +173,27 @@ function reducer(state: AppState, action: Action): AppState {
       const next = current === action.materialId ? null : action.materialId;
       return { ...state, editSlots: { ...state.editSlots, [action.category]: next } };
     }
+
+    case 'TOGGLE_SLOT_LOCK':
+      return {
+        ...state,
+        lockedSlots: { ...state.lockedSlots, [action.category]: !state.lockedSlots[action.category] },
+      };
+
+    case 'TOGGLE_RANDOM_WEIGHTED':
+      return { ...state, randomWeighted: !state.randomWeighted };
+
+    case 'RANDOMIZE_SLOTS':
+      return {
+        ...state,
+        editSlots: randomizeSlots(
+          state.materials,
+          state.publications,
+          state.editSlots,
+          state.lockedSlots,
+          state.randomWeighted,
+        ),
+      };
 
     case 'SET_MAT_CAT':
       return { ...state, matCat: action.category, matEdit: null };

@@ -4,32 +4,14 @@ import { MainHeader } from '../components/MainHeader';
 import { CATEGORIES } from '../state/categories';
 import { readAndResizeImage } from '../state/image';
 import { extractPromptFromPng } from '../state/pngMetadata';
-import { composePrompt, matchPromptToMaterials, type SlotMap } from '../state/prompt';
+import { composePrompt, matchPromptToMaterials, publicationSlotValue, type SlotMap } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
-import type { Category, Publication } from '../types';
 
 const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 const IPFS_PREFIX = 'ipfs://';
 const HTTP_PREFIX = 'https://';
 const stripPrefix = (value: string, prefix: string) => (value.startsWith(prefix) ? value.slice(prefix.length) : value);
-
-function partId(p: Publication, catId: Category): string | null {
-  switch (catId) {
-    case 'character':
-      return p.char;
-    case 'situation':
-      return p.situation;
-    case 'outfit':
-      return p.outfit;
-    case 'background':
-      return p.background;
-    case 'effect':
-      return p.effect;
-    default:
-      return null;
-  }
-}
 
 type UploadTarget = { kind: 'thumb' } | { kind: 'hero'; index: number };
 
@@ -50,7 +32,7 @@ export function PublishMode() {
 
   const items = publications.filter((p) => (pubTab === 'published' ? p.ipfsUrl !== '' : p.ipfsUrl === ''));
   const selected = publications.find((p) => p.id === pubId) ?? null;
-  const allPartsDetected = selected ? CATEGORIES.every((c) => partId(selected, c.id) !== null) : false;
+  const allPartsDetected = selected ? CATEGORIES.every((c) => publicationSlotValue(selected, c.id) !== null) : false;
 
   useEffect(() => {
     if (!selected) return;
@@ -282,7 +264,7 @@ export function PublishMode() {
               />
               <div className="prompt-parts">
                 {CATEGORIES.map((c) => {
-                  const mat = materials.find((m) => m.id === partId(selected, c.id));
+                  const mat = materials.find((m) => m.id === publicationSlotValue(selected, c.id));
                   return (
                     <div key={c.id} className={`exhibit-chip prompt-part ${mat ? 'is-set' : 'is-unset'}`}>
                       <span className="exhibit-chip__cat">{c.abbr}</span>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { categoryMeta } from '../state/categories';
@@ -57,6 +57,67 @@ function groupByCategory(items: Publication[], materials: Material[], cat: Categ
 function matchesGroup(p: Publication, cat: Category, groupId: string): boolean {
   const val = publicationSlotValue(p, cat);
   return groupId === UNSET_GROUP ? val === null : val === groupId;
+}
+
+/** サムネイルクリックで開く拡大表示。複数枚あれば矢印/矢印キーで送れる */
+function Lightbox({
+  images,
+  index,
+  onClose,
+  onNavigate,
+}: {
+  images: string[];
+  index: number;
+  onClose: () => void;
+  onNavigate: (index: number) => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        onNavigate((index - 1 + images.length) % images.length);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        onNavigate((index + 1) % images.length);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [images, index, onClose, onNavigate]);
+
+  return (
+    <div className="lightbox-backdrop" onClick={onClose}>
+      <img src={images[index]} alt="" className="lightbox-img" onClick={(e) => e.stopPropagation()} />
+      <div className="lightbox-close" onClick={onClose}>
+        ×
+      </div>
+      {images.length > 1 && (
+        <>
+          <div
+            className="lightbox-nav lightbox-nav--prev"
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigate((index - 1 + images.length) % images.length);
+            }}
+          >
+            ‹
+          </div>
+          <div
+            className="lightbox-nav lightbox-nav--next"
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigate((index + 1) % images.length);
+            }}
+          >
+            ›
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function ExhibitMode() {
@@ -244,6 +305,7 @@ function ExhibitItemList({
 }) {
   const { isCopied, copy } = useCopy();
   const totalImages = items.reduce((sum, p) => sum + p.count, 0);
+  const [asideLightbox, setAsideLightbox] = useState(false);
 
   return (
     <>
@@ -264,7 +326,12 @@ function ExhibitItemList({
           <div className="field">
             <div className="section-label">キャラクター</div>
             {character.refImage ? (
-              <img src={character.refImage} alt="" className="exhibit-aside__visual exhibit-aside__visual--img" />
+              <img
+                src={character.refImage}
+                alt=""
+                className="exhibit-aside__visual exhibit-aside__visual--img"
+                onClick={() => setAsideLightbox(true)}
+              />
             ) : (
               <StripedThumb className="exhibit-aside__visual" label="reference" />
             )}
@@ -276,6 +343,9 @@ function ExhibitItemList({
           <div className="exhibit-aside__footer">画像は IPFS から取得します</div>
         </aside>
       </div>
+      {asideLightbox && character.refImage && (
+        <Lightbox images={[character.refImage]} index={0} onClose={() => setAsideLightbox(false)} onNavigate={() => {}} />
+      )}
     </>
   );
 }
@@ -294,6 +364,7 @@ function ExhibitEntry({
   const { dispatch } = useStore();
   const gallery = [p.thumbnail, ...p.heroImages].filter((src): src is string => !!src);
   const [active, setActive] = useState<string | null>(gallery[0] ?? null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const openUrl = p.httpUrl || p.ipfsUrl;
   const findMat = (cat: Category, id: string | null) =>
     id ? materials.find((m) => m.category === cat && m.id === id) : undefined;
@@ -309,7 +380,15 @@ function ExhibitEntry({
     <div className="exhibit-item">
       <div className="exhibit-item__gallery">
         {active ? (
-          <img src={active} alt="" className="exhibit-item__visual exhibit-item__visual--img" />
+          <img
+            src={active}
+            alt=""
+            className="exhibit-item__visual exhibit-item__visual--img"
+            onClick={() => {
+              const idx = gallery.indexOf(active);
+              if (idx !== -1) setLightboxIndex(idx);
+            }}
+          />
         ) : (
           <StripedThumb className="exhibit-item__visual" label="key visual" />
         )}
@@ -375,6 +454,17 @@ function ExhibitEntry({
           {isCopied(`${p.id}:link`) ? 'コピー済み ✓' : 'リンク'}
         </div>
       </div>
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={gallery}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={(i) => {
+            setLightboxIndex(i);
+            setActive(gallery[i]);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,17 +1,67 @@
 import { useState } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
-import { CATEGORIES } from '../state/categories';
+import { categoryMeta } from '../state/categories';
 import { publicationSlotValue } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
 import type { Category, Material, Publication } from '../types';
 
-const DETAIL_CHIP_CATEGORIES = CATEGORIES.filter((c) => c.id !== 'character');
+const DETAIL_CHIP_CATEGORIES: Category[] = ['background', 'effect'];
+
+/** 「状況/服装が未設定」グループを表すセンチネル。素材idと衝突しない専用文字列 */
+const UNSET_GROUP = '__unset__';
+
+interface GroupEntry {
+  id: string;
+  label: string;
+  tags: string[];
+  refImage: string | null;
+  items: Publication[];
+}
+
+function groupByCategory(items: Publication[], materials: Material[], cat: Category): GroupEntry[] {
+  const map = new Map<string, Publication[]>();
+  for (const p of items) {
+    const key = publicationSlotValue(p, cat) ?? UNSET_GROUP;
+    const list = map.get(key);
+    if (list) list.push(p);
+    else map.set(key, [p]);
+  }
+
+  const entries: GroupEntry[] = [];
+  for (const [key, list] of map) {
+    if (key === UNSET_GROUP) {
+      entries.push({ id: UNSET_GROUP, label: '未設定', tags: [], refImage: null, items: list });
+    } else {
+      const mat = materials.find((m) => m.id === key);
+      entries.push({
+        id: key,
+        label: mat?.name ?? '不明な素材',
+        tags: mat?.tags ?? [],
+        refImage: mat?.refImage ?? null,
+        items: list,
+      });
+    }
+  }
+
+  // 未設定は最後に、それ以外は展示数が多い順
+  entries.sort((a, b) => {
+    if (a.id === UNSET_GROUP) return 1;
+    if (b.id === UNSET_GROUP) return -1;
+    return b.items.length - a.items.length;
+  });
+  return entries;
+}
+
+function matchesGroup(p: Publication, cat: Category, groupId: string): boolean {
+  const val = publicationSlotValue(p, cat);
+  return groupId === UNSET_GROUP ? val === null : val === groupId;
+}
 
 export function ExhibitMode() {
   const { state, dispatch } = useStore();
-  const { materials, publications, exChar } = state;
+  const { materials, publications, exChar, exSituation, exOutfit } = state;
   const published = publications.filter((p) => p.ipfsUrl !== '');
 
   const characters = materials.filter(
@@ -19,11 +69,16 @@ export function ExhibitMode() {
   );
 
   if (exChar === null) {
-    return <ExhibitList characters={characters} published={published} onSelect={(id) => dispatch({ type: 'SELECT_EX_CHAR', id })} />;
+    return (
+      <ExhibitCharacterList
+        characters={characters}
+        published={published}
+        onSelect={(id) => dispatch({ type: 'SELECT_EX_CHAR', id })}
+      />
+    );
   }
 
   const character = characters.find((c) => c.id === exChar);
-  const items = published.filter((p) => p.char === exChar);
   if (!character) {
     return (
       <>
@@ -33,17 +88,57 @@ export function ExhibitMode() {
     );
   }
 
+  const charItems = published.filter((p) => p.char === exChar);
+
+  if (exSituation === null) {
+    const groups = groupByCategory(charItems, materials, 'situation');
+    return (
+      <ExhibitGroupList
+        groups={groups}
+        category="situation"
+        headerTitle={character.name}
+        headerMeta={`${groups.length} シチュエーション  ·  ${charItems.length} 展示`}
+        backLabel="← キャラクター一覧"
+        onSelect={(id) => dispatch({ type: 'SELECT_EX_SITUATION', id })}
+        onBack={() => dispatch({ type: 'SELECT_EX_CHAR', id: null })}
+      />
+    );
+  }
+
+  const situationItems = charItems.filter((p) => matchesGroup(p, 'situation', exSituation));
+  const situationLabel =
+    exSituation === UNSET_GROUP ? '未設定' : materials.find((m) => m.id === exSituation)?.name ?? '不明な素材';
+
+  if (exOutfit === null) {
+    const groups = groupByCategory(situationItems, materials, 'outfit');
+    return (
+      <ExhibitGroupList
+        groups={groups}
+        category="outfit"
+        headerTitle={situationLabel}
+        headerMeta={`${groups.length} 服装  ·  ${situationItems.length} 展示`}
+        backLabel="← シチュエーション一覧"
+        onSelect={(id) => dispatch({ type: 'SELECT_EX_OUTFIT', id })}
+        onBack={() => dispatch({ type: 'SELECT_EX_SITUATION', id: null })}
+      />
+    );
+  }
+
+  const outfitItems = situationItems.filter((p) => matchesGroup(p, 'outfit', exOutfit));
+  const outfitLabel = exOutfit === UNSET_GROUP ? '未設定' : materials.find((m) => m.id === exOutfit)?.name ?? '不明な素材';
+
   return (
-    <ExhibitDetail
+    <ExhibitItemList
       character={character}
-      items={items}
+      outfitLabel={outfitLabel}
+      items={outfitItems}
       materials={materials}
-      onBack={() => dispatch({ type: 'SELECT_EX_CHAR', id: null })}
+      onBack={() => dispatch({ type: 'SELECT_EX_OUTFIT', id: null })}
     />
   );
 }
 
-function ExhibitList({
+function ExhibitCharacterList({
   characters,
   published,
   onSelect,
@@ -82,13 +177,67 @@ function ExhibitList({
   );
 }
 
-function ExhibitDetail({
+function ExhibitGroupList({
+  groups,
+  category,
+  headerTitle,
+  headerMeta,
+  backLabel,
+  onSelect,
+  onBack,
+}: {
+  groups: GroupEntry[];
+  category: Category;
+  headerTitle: string;
+  headerMeta: string;
+  backLabel: string;
+  onSelect: (id: string) => void;
+  onBack: () => void;
+}) {
+  const meta = categoryMeta(category);
+  return (
+    <>
+      <MainHeader title={headerTitle} meta={headerMeta} />
+      <div className="exhibit-grid-page">
+        <div className="back-link" onClick={onBack}>
+          {backLabel}
+        </div>
+        <div className="exhibit-grid exhibit-grid--nested">
+          {groups.map((g) => {
+            const totalImages = g.items.reduce((sum, p) => sum + p.count, 0);
+            return (
+              <button key={g.id} type="button" className="exhibit-card" onClick={() => onSelect(g.id)}>
+                {g.refImage ? (
+                  <img src={g.refImage} alt="" className="exhibit-card__visual exhibit-card__visual--img" />
+                ) : (
+                  <StripedThumb className="exhibit-card__visual" label={meta.thumbLabel} />
+                )}
+                <div className="exhibit-card__body">
+                  <div className="exhibit-card__name">{g.label}</div>
+                  {g.tags.length > 0 && <div className="exhibit-card__tag">{g.tags.join(', ')}</div>}
+                  <div className="exhibit-card__meta">
+                    {g.items.length} 展示  ·  {totalImages} 枚
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+          {groups.length === 0 && <div className="empty-state">該当する展示がありません</div>}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ExhibitItemList({
   character,
+  outfitLabel,
   items,
   materials,
   onBack,
 }: {
   character: Material;
+  outfitLabel: string;
   items: Publication[];
   materials: Material[];
   onBack: () => void;
@@ -98,11 +247,11 @@ function ExhibitDetail({
 
   return (
     <>
-      <MainHeader title={character.name} meta={`${items.length} 展示  ·  ${totalImages} 枚`} />
+      <MainHeader title={outfitLabel} meta={`${items.length} 展示  ·  ${totalImages} 枚`} />
       <div className="exhibit-detail">
         <div className="exhibit-detail__main">
           <div className="back-link" onClick={onBack}>
-            ← キャラクター一覧
+            ← 服装一覧
           </div>
           <div className="exhibit-detail__list">
             {items.map((p) => (
@@ -179,10 +328,10 @@ function ExhibitEntry({
         </div>
         <div className="exhibit-item__chips">
           {DETAIL_CHIP_CATEGORIES.map((cat) => {
-            const mat = findMat(cat.id, publicationSlotValue(p, cat.id));
+            const mat = findMat(cat, publicationSlotValue(p, cat));
             return (
-              <div key={cat.id} className={`exhibit-chip ${mat ? 'is-set' : 'is-unset'}`}>
-                <span className="exhibit-chip__cat">{cat.abbr}</span>
+              <div key={cat} className={`exhibit-chip ${mat ? 'is-set' : 'is-unset'}`}>
+                <span className="exhibit-chip__cat">{categoryMeta(cat).abbr}</span>
                 {mat ? mat.name : '—'}
               </div>
             );

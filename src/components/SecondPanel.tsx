@@ -1,5 +1,8 @@
+import { useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { CATEGORIES } from '../state/categories';
-import { useStore } from '../state/store';
+import { buildMaterialsExport, mergeImportedMaterials } from '../state/materialsIO';
+import { normalizeMaterial, useStore } from '../state/store';
 
 interface Row {
   key: string;
@@ -12,6 +15,40 @@ interface Row {
 export function SecondPanel() {
   const { state, dispatch } = useStore();
   const { mode, materials, publications, matCat, pubTab, exChar } = state;
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [ioMessage, setIoMessage] = useState<string | null>(null);
+
+  const handleExportMaterials = () => {
+    const payload = buildMaterialsExport(materials);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prompt-studio-materials-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const rawList = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.materials) ? parsed.materials : null;
+      if (!rawList) {
+        setIoMessage('素材データとして読み込めませんでした');
+        return;
+      }
+      const incoming = (rawList as Record<string, unknown>[]).map(normalizeMaterial);
+      const { addedCount, skippedCount } = mergeImportedMaterials(materials, incoming);
+      dispatch({ type: 'IMPORT_MATERIALS', materials: incoming });
+      setIoMessage(`${addedCount} 件追加${skippedCount > 0 ? `（${skippedCount} 件は既存のためスキップ）` : ''}`);
+    } catch {
+      setIoMessage('JSONの読み込みに失敗しました');
+    }
+  };
 
   if (mode === 'recipe') return null;
 
@@ -92,7 +129,29 @@ export function SecondPanel() {
           </button>
         ))}
       </div>
-      <div className="second-panel__footer">pinned 2.1 GB</div>
+      <div className="second-panel__bottom">
+        {mode === 'material' && (
+          <div className="second-panel__io">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              style={{ display: 'none' }}
+              onChange={handleImportFile}
+            />
+            <div className="second-panel__io-buttons">
+              <button type="button" className="second-panel__io-btn" onClick={handleExportMaterials}>
+                書き出し
+              </button>
+              <button type="button" className="second-panel__io-btn" onClick={() => importInputRef.current?.click()}>
+                読み込み
+              </button>
+            </div>
+            {ioMessage && <div className="second-panel__io-msg">{ioMessage}</div>}
+          </div>
+        )}
+        <div className="second-panel__footer">pinned 2.1 GB</div>
+      </div>
     </nav>
   );
 }

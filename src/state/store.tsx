@@ -150,6 +150,7 @@ type Action =
   | { type: 'SET_PUB_TAB'; tab: 'published' | 'draft' }
   | { type: 'SELECT_PUB'; id: string }
   | { type: 'NEW_PUB' }
+  | { type: 'DELETE_PUB'; id: string }
   | { type: 'SET_PUB_IPFS'; id: string; value: string }
   | { type: 'SET_PUB_HTTP'; id: string; value: string }
   | { type: 'SET_PUB_COUNT'; id: string; value: number }
@@ -305,6 +306,13 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'SELECT_PUB':
       return { ...state, pubId: action.id };
+
+    case 'DELETE_PUB':
+      return {
+        ...state,
+        publications: state.publications.filter((p) => p.id !== action.id),
+        pubId: state.pubId === action.id ? null : state.pubId,
+      };
 
     case 'NEW_PUB': {
       const firstChar = state.materials.find((m) => m.category === 'character');

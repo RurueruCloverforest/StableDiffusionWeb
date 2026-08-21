@@ -291,11 +291,19 @@ function ExhibitEntry({
   isCopied: (key: string) => boolean;
   copy: (key: string, text: string) => void;
 }) {
+  const { dispatch } = useStore();
   const gallery = [p.thumbnail, ...p.heroImages].filter((src): src is string => !!src);
   const [active, setActive] = useState<string | null>(gallery[0] ?? null);
   const openUrl = p.httpUrl || p.ipfsUrl;
   const findMat = (cat: Category, id: string | null) =>
     id ? materials.find((m) => m.category === cat && m.id === id) : undefined;
+
+  const handleEdit = () => {
+    // 展示に出ているものは必ずアドレス設定済みなので "published" タブで開く
+    dispatch({ type: 'SET_PUB_TAB', tab: 'published' });
+    dispatch({ type: 'SELECT_PUB', id: p.id });
+    dispatch({ type: 'SET_MODE', mode: 'publish' });
+  };
 
   return (
     <div className="exhibit-item">
@@ -359,6 +367,9 @@ function ExhibitEntry({
       <div className="exhibit-item__actions">
         <div className="btn-open" onClick={() => openUrl && window.open(openUrl, '_blank', 'noopener,noreferrer')}>
           開く
+        </div>
+        <div className="btn-link" onClick={handleEdit}>
+          編集
         </div>
         <div className="btn-link" onClick={() => openUrl && copy(`${p.id}:link`, openUrl)}>
           {isCopied(`${p.id}:link`) ? 'コピー済み ✓' : 'リンク'}

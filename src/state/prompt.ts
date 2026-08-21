@@ -45,12 +45,41 @@ export function containsBlock(tags: string[], block: string[]): boolean {
 }
 
 /**
+ * 複数カテゴリが同時にマッチした際、片方の素材のタグ集合がもう片方のタグ集合の
+ * 部分集合になっているなら、部分集合側を無効化して上位集合側だけを残す。
+ * 例: outfit「glowing dress, sparkle」と effect「sparkle」が両方マッチした場合、
+ * sparkle は outfit 側のタグに含まれる断片に過ぎないとみなし、effect の判定を取り消す。
+ * 順序は問わない集合としての包含判定（"集合的に含まれる"）。
+ */
+function resolveSubsetConflicts(materials: Material[], slots: SlotMap): void {
+  const tagsOf = (id: string | null): string[] | null =>
+    id ? materials.find((m) => m.id === id)?.tags ?? null : null;
+  const isSubset = (a: string[], b: string[]) => a.every((t) => b.includes(t));
+
+  for (const catA of CATEGORIES) {
+    const tagsA = tagsOf(slots[catA.id]);
+    if (!tagsA) continue;
+    for (const catB of CATEGORIES) {
+      if (catA.id === catB.id) continue;
+      const tagsB = tagsOf(slots[catB.id]);
+      if (!tagsB) continue;
+      if (isSubset(tagsA, tagsB)) {
+        slots[catA.id] = null;
+        break;
+      }
+    }
+  }
+}
+
+/**
  * 貼り付けられたプロンプト文字列から、登録済み素材の組み合わせを逆引きする。
  * カテゴリごとに「そのタグ列がプロンプト中にひとかたまり（連続・順序一致）で
  * 含まれている素材」を探して採用する。実際の生成時に付け足された品質タグなど、
  * 素材に登録されていない余分なタグがプロンプト側にあっても構わない
- * （= 完全一致ではなく包含判定）。キャラに該当する素材が1つも見つからなければ
- * null（＝このアプリの素材から生成されたプロンプトではないと判断）。
+ * （= 完全一致ではなく包含判定）。カテゴリをまたいで部分集合の関係にある
+ * マッチが同時に成立した場合は resolveSubsetConflicts で上位集合側に一本化する。
+ * キャラに該当する素材が1つも見つからなければ null（＝このアプリの素材から
+ * 生成されたプロンプトではないと判断）。
  */
 export function matchPromptToMaterials(materials: Material[], promptText: string): SlotMap | null {
   const tags = promptText
@@ -64,6 +93,8 @@ export function matchPromptToMaterials(materials: Material[], promptText: string
     const found = candidates.find((m) => containsBlock(tags, m.tags));
     result[cat.id] = found?.id ?? null;
   }
+
+  resolveSubsetConflicts(materials, result);
 
   return result.character ? result : null;
 }

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import type { Dispatch, ReactNode } from 'react';
 import type { Category, Material, MaterialDraft, Mode, Publication } from '../types';
 import { seedMaterials, seedPublications } from '../data/seed';
+import { mergeImportedMaterials } from './materialsIO';
 import { composeName, emptySlots, randomizeSlots, type SlotMap } from './prompt';
 
 const STORAGE_KEY = 'prompt-studio:data';
@@ -13,9 +14,9 @@ interface PersistedData {
 
 const CATEGORY_VALUES: Category[] = ['character', 'situation', 'outfit', 'background', 'effect'];
 
-// 旧スキーマ（refCount など）で保存されたブラウザのデータでも
-// 欠けているフィールドを補って安全に読み込めるようにする
-function normalizeMaterial(raw: Record<string, unknown>): Material {
+// 旧スキーマ（refCount など）で保存されたブラウザのデータでも、また
+// インポートされた外部JSONでも、欠けているフィールドを補って安全に読み込めるようにする
+export function normalizeMaterial(raw: Record<string, unknown>): Material {
   return {
     id: String(raw.id ?? `mat-${Date.now().toString(36)}`),
     category: CATEGORY_VALUES.includes(raw.category as Category) ? (raw.category as Category) : 'character',
@@ -141,6 +142,7 @@ type Action =
   | { type: 'SET_MAT_REF_IMAGE'; dataUrl: string | null }
   | { type: 'SAVE_MAT' }
   | { type: 'DELETE_MAT'; id: string }
+  | { type: 'IMPORT_MATERIALS'; materials: Material[] }
   | { type: 'SET_PUB_TAB'; tab: 'published' | 'draft' }
   | { type: 'SELECT_PUB'; id: string }
   | { type: 'NEW_PUB' }
@@ -288,6 +290,9 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'DELETE_MAT':
       return { ...state, materials: state.materials.filter((m) => m.id !== action.id), matEdit: null };
+
+    case 'IMPORT_MATERIALS':
+      return { ...state, materials: mergeImportedMaterials(state.materials, action.materials).merged };
 
     case 'SET_PUB_TAB':
       return { ...state, pubTab: action.tab };

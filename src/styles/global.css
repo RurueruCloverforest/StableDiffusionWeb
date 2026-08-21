@@ -208,8 +208,43 @@ button {
 .second-panel__row.is-active .second-panel__count {
   color: var(--accent-dark);
 }
-.second-panel__footer {
+.second-panel__bottom {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+}
+.second-panel__io {
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.second-panel__io-buttons {
+  display: flex;
+  gap: 8px;
+}
+.second-panel__io-btn {
+  flex: 1;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-weaker);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.second-panel__io-btn:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--text);
+}
+.second-panel__io-msg {
+  font: 400 9.5px/1.4 var(--font-mono);
+  color: var(--text-faintest);
+}
+.second-panel__footer {
   padding: 14px 16px;
   border-top: 1px solid var(--border-weak);
   font: 400 9.5px/1.5 var(--font-mono);

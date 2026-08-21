@@ -1,5 +1,5 @@
 import { CATEGORIES } from './categories';
-import type { Category, Material } from '../types';
+import type { Category, Material, Publication } from '../types';
 
 export type SlotMap = Record<Category, string | null>;
 
@@ -66,6 +66,71 @@ export function matchPromptToMaterials(materials: Material[], promptText: string
   }
 
   return result.character ? result : null;
+}
+
+/** Publication の指定カテゴリに対応するフィールド値（character は char フィールド） */
+export function publicationSlotValue(p: Publication, cat: Category): string | null {
+  switch (cat) {
+    case 'character':
+      return p.char;
+    case 'situation':
+      return p.situation;
+    case 'outfit':
+      return p.outfit;
+    case 'background':
+      return p.background;
+    case 'effect':
+      return p.effect;
+    default:
+      return null;
+  }
+}
+
+function weightedPick(candidates: Material[], weights: number[]): Material {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < candidates.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return candidates[i];
+  }
+  return candidates[candidates.length - 1];
+}
+
+/**
+ * ロックされていないカテゴリだけをランダムに選び直す。
+ * weighted=true のときは、展示済み（ipfsUrl 設定済み）publication での使用回数が
+ * 少ない素材ほど選ばれやすくなるよう重み付けする（1 / (使用回数 + 1)）。
+ * 該当カテゴリに素材が1件も無ければ null のまま。
+ */
+export function randomizeSlots(
+  materials: Material[],
+  publications: Publication[],
+  currentSlots: SlotMap,
+  lockedSlots: Record<Category, boolean>,
+  weighted: boolean,
+): SlotMap {
+  const published = publications.filter((p) => p.ipfsUrl !== '');
+  const result: SlotMap = { ...currentSlots };
+
+  for (const cat of CATEGORIES) {
+    if (lockedSlots[cat.id]) continue;
+    const candidates = materials.filter((m) => m.category === cat.id);
+    if (candidates.length === 0) {
+      result[cat.id] = null;
+      continue;
+    }
+    if (!weighted) {
+      result[cat.id] = candidates[Math.floor(Math.random() * candidates.length)].id;
+      continue;
+    }
+    const weights = candidates.map((m) => {
+      const usage = published.filter((p) => publicationSlotValue(p, cat.id) === m.id).length;
+      return 1 / (usage + 1);
+    });
+    result[cat.id] = weightedPick(candidates, weights).id;
+  }
+
+  return result;
 }
 
 /** 素材フォームでの合成プレビュー: 編集中のタグ + 作業中プロンプトの他カテゴリのタグ */

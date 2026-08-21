@@ -78,6 +78,13 @@ export function PublishMode() {
     }
   };
 
+  const handleDeletePub = () => {
+    if (!selected) return;
+    if (window.confirm('この公開エントリを削除しますか？')) {
+      dispatch({ type: 'DELETE_PUB', id: selected.id });
+    }
+  };
+
   const handlePromptChange = (value: string) => {
     setPromptDraft(value);
     if (!selected) return;
@@ -337,6 +344,9 @@ export function PublishMode() {
               {!allPartsDetected && (
                 <div className="pub-detail__save-hint">キャラ・状況・服装・背景・演出をすべて検出すると保存できます</div>
               )}
+              <button type="button" className="btn-text-danger" onClick={handleDeletePub}>
+                削除
+              </button>
             </div>
           </div>
         ) : (

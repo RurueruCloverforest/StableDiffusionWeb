@@ -18,7 +18,8 @@ export function SecondPanel() {
   const { mode, materials, publications, matCat, pubTab, exChar } = state;
   const importInputRef = useRef<HTMLInputElement>(null);
   const [ioMessage, setIoMessage] = useState<string | null>(null);
-  const [importAsReference, setImportAsReference] = useState(false);
+  // useState だと click() 直後に change イベントが来た場合に古い値のまま読まれることがあるため ref で持つ
+  const importAsReferenceRef = useRef(false);
 
   const handleExportMaterials = () => {
     const payload = buildMaterialsExport(materials);
@@ -76,9 +77,9 @@ export function SecondPanel() {
     if (!file) return;
     try {
       if (mode === 'publish') {
-        await handleImportPublicationsFile(file, importAsReference);
+        await handleImportPublicationsFile(file, importAsReferenceRef.current);
       } else {
-        await handleImportMaterialsFile(file, importAsReference);
+        await handleImportMaterialsFile(file, importAsReferenceRef.current);
       }
     } catch {
       setIoMessage('JSONの読み込みに失敗しました');
@@ -86,7 +87,7 @@ export function SecondPanel() {
   };
 
   const openImport = (asReference: boolean) => {
-    setImportAsReference(asReference);
+    importAsReferenceRef.current = asReference;
     importInputRef.current?.click();
   };
 

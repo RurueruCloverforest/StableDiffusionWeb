@@ -1,6 +1,7 @@
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { categoryMeta } from '../state/categories';
+import { materialDisplayName } from '../state/prompt';
 import { useStore } from '../state/store';
 
 export function MaterialList() {
@@ -34,7 +35,7 @@ export function MaterialList() {
                 <StripedThumb className="material-card__thumb" label={meta.thumbLabel} />
               )}
               <div className="material-card__body">
-                <div className="material-card__name">{item.name}</div>
+                <div className="material-card__name">{materialDisplayName(item)}</div>
                 <div className="material-card__tag">{item.tags.join(', ')}</div>
                 <div className="material-card__meta">
                   {item.tags.length} タグ{usedInRecipe ? '  ·  作業中に使用' : ''}

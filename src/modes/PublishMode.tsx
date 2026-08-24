@@ -4,7 +4,7 @@ import { MainHeader } from '../components/MainHeader';
 import { CATEGORIES } from '../state/categories';
 import { readAndResizeImage } from '../state/image';
 import { extractPromptFromPng } from '../state/pngMetadata';
-import { matchPromptToMaterials, needsRecategorization, publicationSlotValue } from '../state/prompt';
+import { materialDisplayName, matchPromptToMaterials, needsRecategorization, publicationSlotValue } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
 
@@ -281,7 +281,7 @@ export function PublishMode() {
                   return (
                     <div key={c.id} className={`exhibit-chip prompt-part ${mat ? 'is-set' : 'is-unset'}`}>
                       <span className="exhibit-chip__cat">{c.abbr}</span>
-                      {mat ? mat.name : '未検出'}
+                      {mat ? materialDisplayName(mat) : '未検出'}
                     </div>
                   );
                 })}

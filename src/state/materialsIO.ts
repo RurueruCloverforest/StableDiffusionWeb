@@ -19,11 +19,12 @@ export function buildMaterialsExport(materials: Material[]): MaterialsExportFile
   };
 }
 
-const materialKey = (m: Material) => `${m.category}::${m.name.trim()}`;
+const materialKey = (m: Material) => `${m.category}::${m.name.trim()}::${m.alternativeName.trim()}`;
 
 /**
- * 既存素材とマージする。(category, name) が既存にあるものはスキップし、
+ * 既存素材とマージする。(category, name, alternativeName) が既存にあるものはスキップし、
  * 無いものだけを新しい id を振って追加する（全置き換えではなく追加のみ）。
+ * 同じ name でも alternativeName が違えばバリエーションとして別物として追加される。
  * インポート対象自身に重複があった場合も先勝ちで1件だけ残す。
  * asReference=true の場合は「参照読み込み」として isReference を立てて追加する
  * （書き出し対象から除外されるだけで、レシピ等では通常の素材と同様に使える）。

@@ -111,6 +111,21 @@ export function MaterialForm() {
 
           <div className="field">
             <div className="field__label-row">
+              <div className="section-label">派生名称</div>
+              <div className="field__hint">
+                同じ名前のバリエーションを作るときに使う任意項目。例: v2、冬服。展示では名前だけでまとめて表示されます
+              </div>
+            </div>
+            <input
+              className="text-input"
+              value={matDraft.alternativeName}
+              placeholder="例：v2（未入力なら通常の素材）"
+              onChange={(e) => dispatch({ type: 'SET_MAT_ALT_NAME', value: e.target.value })}
+            />
+          </div>
+
+          <div className="field">
+            <div className="field__label-row">
               <div className="section-label">参照画像</div>
               <div className="field__hint">見た目の確認用。プロンプトには含まれません</div>
             </div>

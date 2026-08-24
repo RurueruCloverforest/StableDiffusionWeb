@@ -4,32 +4,32 @@ import type { Material, Publication } from '../types';
 // プロトタイプの初期データ。実運用では localStorage 上のユーザーデータに置き換わる
 // （state/store.tsx 参照）。シード段階では画像を同梱していないため refImage/thumbnail/heroImages は null。
 export const seedMaterials: Material[] = [
-  { id: 'chr-1', category: 'character', name: 'アリス', tags: ['1girl', 'silver hair', 'long hair', 'blue eyes', 'gothic lolita'], note: 'メインヒロイン。逆光と相性がいい', refImage: null, isReference: false },
-  { id: 'chr-2', category: 'character', name: 'ミナト', tags: ['1boy', 'black hair', 'short hair', 'sharp eyes', 'tall'], note: '', refImage: null, isReference: false },
-  { id: 'chr-3', category: 'character', name: 'ユキ', tags: ['1girl', 'white hair', 'red eyes', 'petite', 'fox ears'], note: '図書館の背景でよく使う', refImage: null, isReference: false },
-  { id: 'chr-4', category: 'character', name: 'レン', tags: ['1boy', 'brown hair', 'glasses', 'gentle smile'], note: '', refImage: null, isReference: false },
-  { id: 'chr-5', category: 'character', name: 'ソラ', tags: ['1girl', 'blue hair', 'ponytail', 'freckles', 'energetic'], note: '', refImage: null, isReference: false },
-  { id: 'chr-6', category: 'character', name: 'カエデ', tags: ['1girl', 'orange hair', 'twintails', 'amber eyes', 'tsundere'], note: '', refImage: null, isReference: false },
+  { id: 'chr-1', category: 'character', name: 'アリス', tags: ['1girl', 'silver hair', 'long hair', 'blue eyes', 'gothic lolita'], alternativeName: '', note: 'メインヒロイン。逆光と相性がいい', refImage: null, isReference: false },
+  { id: 'chr-2', category: 'character', name: 'ミナト', tags: ['1boy', 'black hair', 'short hair', 'sharp eyes', 'tall'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'chr-3', category: 'character', name: 'ユキ', tags: ['1girl', 'white hair', 'red eyes', 'petite', 'fox ears'], alternativeName: '', note: '図書館の背景でよく使う', refImage: null, isReference: false },
+  { id: 'chr-4', category: 'character', name: 'レン', tags: ['1boy', 'brown hair', 'glasses', 'gentle smile'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'chr-5', category: 'character', name: 'ソラ', tags: ['1girl', 'blue hair', 'ponytail', 'freckles', 'energetic'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'chr-6', category: 'character', name: 'カエデ', tags: ['1girl', 'orange hair', 'twintails', 'amber eyes', 'tsundere'], alternativeName: '', note: '', refImage: null, isReference: false },
 
-  { id: 'sit-1', category: 'situation', name: '教室', tags: ['classroom', 'desks', 'chalkboard', 'afternoon light'], note: '', refImage: null, isReference: false },
-  { id: 'sit-2', category: 'situation', name: '夜の街', tags: ['night city', 'neon lights', 'rain reflection', 'crowded street'], note: '', refImage: null, isReference: false },
-  { id: 'sit-3', category: 'situation', name: '雨上がりの公園', tags: ['park', 'wet pavement', 'after rain', 'puddle reflection'], note: '', refImage: null, isReference: false },
-  { id: 'sit-4', category: 'situation', name: '屋上', tags: ['rooftop', 'school rooftop', 'wind', 'open sky'], note: '', refImage: null, isReference: false },
+  { id: 'sit-1', category: 'situation', name: '教室', tags: ['classroom', 'desks', 'chalkboard', 'afternoon light'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'sit-2', category: 'situation', name: '夜の街', tags: ['night city', 'neon lights', 'rain reflection', 'crowded street'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'sit-3', category: 'situation', name: '雨上がりの公園', tags: ['park', 'wet pavement', 'after rain', 'puddle reflection'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'sit-4', category: 'situation', name: '屋上', tags: ['rooftop', 'school rooftop', 'wind', 'open sky'], alternativeName: '', note: '', refImage: null, isReference: false },
 
-  { id: 'out-1', category: 'outfit', name: '制服', tags: ['school uniform', 'pleated skirt', 'blazer', 'necktie'], note: '', refImage: null, isReference: false },
-  { id: 'out-2', category: 'outfit', name: 'カジュアル', tags: ['casual wear', 'hoodie', 'jeans', 'sneakers'], note: '', refImage: null, isReference: false },
-  { id: 'out-3', category: 'outfit', name: 'ドレス', tags: ['evening dress', 'off shoulder', 'elegant', 'lace trim'], note: '', refImage: null, isReference: false },
-  { id: 'out-4', category: 'outfit', name: 'パーカー', tags: ['oversized hoodie', 'shorts', 'sporty', 'cap'], note: '', refImage: null, isReference: false },
+  { id: 'out-1', category: 'outfit', name: '制服', tags: ['school uniform', 'pleated skirt', 'blazer', 'necktie'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'out-2', category: 'outfit', name: 'カジュアル', tags: ['casual wear', 'hoodie', 'jeans', 'sneakers'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'out-3', category: 'outfit', name: 'ドレス', tags: ['evening dress', 'off shoulder', 'elegant', 'lace trim'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'out-4', category: 'outfit', name: 'パーカー', tags: ['oversized hoodie', 'shorts', 'sporty', 'cap'], alternativeName: '', note: '', refImage: null, isReference: false },
 
-  { id: 'bg-1', category: 'background', name: '桜並木', tags: ['cherry blossoms', 'sakura petals', 'tree lined path', 'spring'], note: '', refImage: null, isReference: false },
-  { id: 'bg-2', category: 'background', name: 'オフィス', tags: ['office', 'desks', 'glass wall', 'city view'], note: '', refImage: null, isReference: false },
-  { id: 'bg-3', category: 'background', name: '海辺', tags: ['beach', 'ocean', 'sunset', 'horizon'], note: '', refImage: null, isReference: false },
-  { id: 'bg-4', category: 'background', name: '図書館', tags: ['library', 'bookshelves', 'warm light', 'quiet'], note: '', refImage: null, isReference: false },
+  { id: 'bg-1', category: 'background', name: '桜並木', tags: ['cherry blossoms', 'sakura petals', 'tree lined path', 'spring'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'bg-2', category: 'background', name: 'オフィス', tags: ['office', 'desks', 'glass wall', 'city view'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'bg-3', category: 'background', name: '海辺', tags: ['beach', 'ocean', 'sunset', 'horizon'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'bg-4', category: 'background', name: '図書館', tags: ['library', 'bookshelves', 'warm light', 'quiet'], alternativeName: '', note: '', refImage: null, isReference: false },
 
-  { id: 'eff-1', category: 'effect', name: '逆光', tags: ['backlighting', 'rim light', 'lens flare'], note: '', refImage: null, isReference: false },
-  { id: 'eff-2', category: 'effect', name: 'ソフトフォーカス', tags: ['soft focus', 'bloom', 'dreamy atmosphere'], note: '', refImage: null, isReference: false },
-  { id: 'eff-3', category: 'effect', name: '発光エフェクト', tags: ['glowing particles', 'magic effect', 'bokeh'], note: '', refImage: null, isReference: false },
-  { id: 'eff-4', category: 'effect', name: 'フィルムグレイン', tags: ['film grain', 'vintage tone', 'analog photo'], note: '', refImage: null, isReference: false },
+  { id: 'eff-1', category: 'effect', name: '逆光', tags: ['backlighting', 'rim light', 'lens flare'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'eff-2', category: 'effect', name: 'ソフトフォーカス', tags: ['soft focus', 'bloom', 'dreamy atmosphere'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'eff-3', category: 'effect', name: '発光エフェクト', tags: ['glowing particles', 'magic effect', 'bokeh'], alternativeName: '', note: '', refImage: null, isReference: false },
+  { id: 'eff-4', category: 'effect', name: 'フィルムグレイン', tags: ['film grain', 'vintage tone', 'analog photo'], alternativeName: '', note: '', refImage: null, isReference: false },
 ];
 
 export const seedPublications: Publication[] = [

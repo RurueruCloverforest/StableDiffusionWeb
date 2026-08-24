@@ -33,6 +33,23 @@ npm run preview
 - 別のブラウザ/端末とはデータを共有しない
 - 将来 API 連携する場合は `src/state/store.tsx` の `loadPersisted` / 永続化 `useEffect` を差し替える想定
 
+### 内部データモデル
+
+永続化される実体は **`Material`（素材）と `Publication`（公開）の2つだけ**。レシピと展示は独自のデータを持たない。
+
+- **`Material`**: 独立したエンティティ。他のデータを参照しない（`id` / `category` / `name` / `tags` / `note` / `refImage`）
+- **`Publication`**: `Material` の `id` を参照する側（`char` / `situation` / `outfit` / `background` / `effect`）。加えて、投稿時に貼り付けた生のプロンプト文字列を `prompt` として保持する
+- **レシピ (`editSlots`)**: 永続化されない作業用の一時state。`Material` を読むだけで、保存済みレシピ一覧という概念は持たない（ランダム選択の使用回数重み付けでのみ `Publication` を読み取り専用参照する）
+- **展示**: `Publication` のうち `ipfsUrl` が設定済みのものだけを取り出して階層表示する、書き込み経路を持たない**純粋な派生ビュー**。展示専用のデータは一切持たない
+
+#### 素材参照の再解決（起動時の再カテゴライズ）
+
+`Publication` に保存されている `char` などのID参照は信用せず、**`prompt` を唯一の正とみなして起動のたびに今の `Material` データへ再マッチングし直す**（`src/state/prompt.ts` の `recategorizePublication`、`src/state/store.tsx` の `loadPersisted` から呼び出し）。保存済みのID群は、その再マッチング結果をキャッシュしているだけの扱い。
+
+- 参照していた素材が削除・変更されて再マッチングできなかった場合、`char` は `''` になる
+- `char === ''` の公開エントリは、公開一覧・詳細画面の両方に「⚠ 要再分類」として表示される
+- 展示はもともと `char` が解決できない公開エントリを表示しないため、再分類に失敗したものは自動的に展示からも除外される
+
 ### 素材データのエクスポート / インポート
 
 素材モードの第2パネル下部から、登録済み素材（全カテゴリ）を1つのJSONファイルとして書き出せる。読み込みは全置き換えではなく**追加のみ**: 既存に同じ (カテゴリ, 名前) の素材が無いものだけを新しい id で追加する（`src/state/materialsIO.ts`）。ブラウザ間・環境間（本番/`experiment` など localStorage が別れている場合）で素材を持ち運ぶ用途を想定。

@@ -151,6 +151,18 @@ export function exhibitUsageCount(publications: Publication[], cat: Category, ma
   return publications.filter((p) => p.ipfsUrl !== '' && publicationSlotValue(p, cat) === materialId).length;
 }
 
+/** キャラ・状況・服装の組み合わせが、展示済み（ipfsUrl設定済み）の公開エントリに何件あるか */
+export function comboUsageCount(
+  publications: Publication[],
+  char: string | null,
+  situation: string | null,
+  outfit: string | null,
+): number {
+  return publications.filter(
+    (p) => p.ipfsUrl !== '' && p.char === char && p.situation === situation && p.outfit === outfit,
+  ).length;
+}
+
 function weightedPick(candidates: Material[], weights: number[]): Material {
   const total = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
@@ -161,11 +173,17 @@ function weightedPick(candidates: Material[], weights: number[]): Material {
   return candidates[candidates.length - 1];
 }
 
+const TRIO_CATEGORIES: Category[] = ['character', 'situation', 'outfit'];
+const REST_CATEGORIES: Category[] = ['background', 'effect'];
+
 /**
  * ロックされていないカテゴリだけをランダムに選び直す。
- * weighted=true のときは、展示済み（ipfsUrl 設定済み）publication での使用回数が
- * 少ない素材ほど選ばれやすくなるよう重み付けする（1 / (使用回数 + 1)）。
- * 該当カテゴリに素材が1件も無ければ null のまま。
+ *
+ * weighted=true のとき、キャラ・状況・服装は単体の使用回数ではなく
+ * 「その3つの組み合わせ」で展示済み件数が一番少ないものを優先する
+ * （同数のものが複数あればその中からランダム）。背景・演出は従来通り、
+ * カテゴリ単体の使用回数が少ない素材ほど選ばれやすくなるよう重み付けする
+ * （1 / (使用回数 + 1)）。該当カテゴリに素材が1件も無ければ null のまま。
  */
 export function randomizeSlots(
   materials: Material[],
@@ -176,19 +194,48 @@ export function randomizeSlots(
 ): SlotMap {
   const result: SlotMap = { ...currentSlots };
 
-  for (const cat of CATEGORIES) {
-    if (lockedSlots[cat.id]) continue;
-    const candidates = materials.filter((m) => m.category === cat.id);
+  if (weighted) {
+    const candidateLists = TRIO_CATEGORIES.map((cat) => {
+      if (lockedSlots[cat]) return [currentSlots[cat]];
+      const opts = materials.filter((m) => m.category === cat).map((m) => m.id);
+      return opts.length > 0 ? opts : [null];
+    });
+    const combos: [string | null, string | null, string | null][] = [];
+    for (const c of candidateLists[0]) {
+      for (const s of candidateLists[1]) {
+        for (const o of candidateLists[2]) {
+          combos.push([c, s, o]);
+        }
+      }
+    }
+    const counts = combos.map(([c, s, o]) => comboUsageCount(publications, c, s, o));
+    const min = Math.min(...counts);
+    const bestCombos = combos.filter((_, i) => counts[i] === min);
+    const [char, situation, outfit] = bestCombos[Math.floor(Math.random() * bestCombos.length)];
+    if (!lockedSlots.character) result.character = char;
+    if (!lockedSlots.situation) result.situation = situation;
+    if (!lockedSlots.outfit) result.outfit = outfit;
+  } else {
+    for (const cat of TRIO_CATEGORIES) {
+      if (lockedSlots[cat]) continue;
+      const candidates = materials.filter((m) => m.category === cat);
+      result[cat] = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)].id : null;
+    }
+  }
+
+  for (const cat of REST_CATEGORIES) {
+    if (lockedSlots[cat]) continue;
+    const candidates = materials.filter((m) => m.category === cat);
     if (candidates.length === 0) {
-      result[cat.id] = null;
+      result[cat] = null;
       continue;
     }
     if (!weighted) {
-      result[cat.id] = candidates[Math.floor(Math.random() * candidates.length)].id;
+      result[cat] = candidates[Math.floor(Math.random() * candidates.length)].id;
       continue;
     }
-    const weights = candidates.map((m) => 1 / (exhibitUsageCount(publications, cat.id, m.id) + 1));
-    result[cat.id] = weightedPick(candidates, weights).id;
+    const weights = candidates.map((m) => 1 / (exhibitUsageCount(publications, cat, m.id) + 1));
+    result[cat] = weightedPick(candidates, weights).id;
   }
 
   return result;

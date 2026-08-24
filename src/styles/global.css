@@ -152,6 +152,7 @@ button {
 .second-panel {
   width: 204px;
   flex: none;
+  min-height: 0;
   background: var(--panel-bg);
   border-right: 1px solid var(--border-panel);
   display: flex;
@@ -175,6 +176,8 @@ button {
   text-transform: uppercase;
 }
 .second-panel__list {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -209,6 +212,7 @@ button {
   color: var(--accent-dark);
 }
 .second-panel__bottom {
+  flex: none;
   margin-top: auto;
   display: flex;
   flex-direction: column;
@@ -254,6 +258,7 @@ button {
 .main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--main-bg);
@@ -544,6 +549,7 @@ button {
 }
 .composed__box {
   flex: 1;
+  min-height: 0;
   padding: 14px;
   border: 1px solid var(--border-strong);
   border-radius: 9px;
@@ -577,6 +583,7 @@ button {
 }
 .picker__list {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -646,6 +653,7 @@ button {
 /* ===== Material mode ===== */
 .material-grid {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 20px 22px;
   display: grid;
@@ -1214,6 +1222,7 @@ button {
 /* ===== Exhibit mode ===== */
 .exhibit-grid {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 22px 24px;
   display: grid;
@@ -1223,6 +1232,7 @@ button {
 }
 .exhibit-grid-page {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 22px 24px;
   display: flex;

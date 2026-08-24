@@ -25,6 +25,7 @@ export function normalizeMaterial(raw: Record<string, unknown>): Material {
     tags: Array.isArray(raw.tags) ? raw.tags.filter((t): t is string => typeof t === 'string') : [],
     note: typeof raw.note === 'string' ? raw.note : '',
     refImage: typeof raw.refImage === 'string' ? raw.refImage : null,
+    isReference: raw.isReference === true,
   };
 }
 
@@ -47,6 +48,7 @@ export function normalizePublication(raw: Record<string, unknown>): Publication 
     heroImages: [0, 1, 2].map((i) => (typeof heroSrc[i] === 'string' ? heroSrc[i] : null)),
     count: typeof raw.count === 'number' ? raw.count : 0,
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString().slice(0, 10),
+    isReference: raw.isReference === true,
   };
 }
 
@@ -155,8 +157,8 @@ type Action =
   | { type: 'SET_MAT_REF_IMAGE'; dataUrl: string | null }
   | { type: 'SAVE_MAT' }
   | { type: 'DELETE_MAT'; id: string }
-  | { type: 'IMPORT_MATERIALS'; materials: Material[] }
-  | { type: 'IMPORT_PUBLICATIONS'; publications: Publication[] }
+  | { type: 'IMPORT_MATERIALS'; materials: Material[]; asReference: boolean }
+  | { type: 'IMPORT_PUBLICATIONS'; publications: Publication[]; asReference: boolean }
   | { type: 'SET_PUB_TAB'; tab: 'published' | 'draft' }
   | { type: 'SELECT_PUB'; id: string }
   | { type: 'NEW_PUB' }
@@ -288,6 +290,7 @@ function reducer(state: AppState, action: Action): AppState {
           tags: state.matDraft.tags,
           note: state.matDraft.note,
           refImage: state.matDraft.refImage,
+          isReference: false,
         };
         return { ...state, materials: [...state.materials, material], matEdit: null };
       }
@@ -310,10 +313,13 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, materials: state.materials.filter((m) => m.id !== action.id), matEdit: null };
 
     case 'IMPORT_MATERIALS':
-      return { ...state, materials: mergeImportedMaterials(state.materials, action.materials).merged };
+      return {
+        ...state,
+        materials: mergeImportedMaterials(state.materials, action.materials, action.asReference).merged,
+      };
 
     case 'IMPORT_PUBLICATIONS': {
-      const merged = mergeImportedPublications(state.publications, action.publications).merged;
+      const merged = mergeImportedPublications(state.publications, action.publications, action.asReference).merged;
       // 素材ID参照はインポート元と食い違いうるため、今の素材データへその場で再マッチングし直す
       return { ...state, publications: merged.map((p) => recategorizePublication(state.materials, p)) };
     }
@@ -355,6 +361,7 @@ function reducer(state: AppState, action: Action): AppState {
         heroImages: [null, null, null],
         count: 0,
         updatedAt: new Date().toISOString().slice(0, 10),
+        isReference: false,
       };
       return { ...state, publications: [...state.publications, pub], pubId: pub.id, pubTab: 'draft' };
     }

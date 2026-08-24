@@ -10,6 +10,8 @@ export interface Material {
   note: string;
   /** 参照画像（key visual）の data URL。未設定は null */
   refImage: string | null;
+  /** 「参照読み込み」で取り込んだ他人のデータか。true のものは書き出し対象から除外される */
+  isReference: boolean;
 }
 
 export interface Publication {
@@ -33,6 +35,8 @@ export interface Publication {
   heroImages: (string | null)[];
   count: number;
   updatedAt: string;
+  /** 「参照読み込み」で取り込んだ他人のデータか。true のものは書き出し対象から除外される */
+  isReference: boolean;
 }
 
 export interface MaterialDraft {

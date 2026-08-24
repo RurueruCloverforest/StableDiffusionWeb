@@ -640,6 +640,15 @@ button {
 .picker__row.is-selected .picker__tag {
   color: var(--accent-dark);
 }
+.picker__usage {
+  flex: none;
+  align-self: center;
+  font: 400 9.5px/1 var(--font-mono);
+  color: var(--text-faintest);
+}
+.picker__row.is-selected .picker__usage {
+  color: var(--accent-dark);
+}
 
 .howto {
   flex: 1;

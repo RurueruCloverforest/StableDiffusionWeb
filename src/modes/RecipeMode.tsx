@@ -1,13 +1,13 @@
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { CATEGORIES, categoryMeta } from '../state/categories';
-import { composePrompt } from '../state/prompt';
+import { composePrompt, exhibitUsageCount } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
 
 export function RecipeMode() {
   const { state, dispatch } = useStore();
-  const { materials, editSlots, activeSlot, lockedSlots, randomWeighted } = state;
+  const { materials, publications, editSlots, activeSlot, lockedSlots, randomWeighted } = state;
   const { isCopied, copy } = useCopy();
 
   const composed = composePrompt(materials, editSlots);
@@ -107,6 +107,7 @@ export function RecipeMode() {
                 )}
                 {pickerItems.map((item) => {
                   const selected = editSlots[activeSlot] === item.id;
+                  const usage = exhibitUsageCount(publications, activeSlot, item.id);
                   return (
                     <button
                       key={item.id}
@@ -122,6 +123,9 @@ export function RecipeMode() {
                       <div className="picker__body">
                         <div className="picker__name">{item.name}</div>
                         <div className="picker__tag">{item.tags.join(', ')}</div>
+                      </div>
+                      <div className="picker__usage" title="展示に登録済みの件数">
+                        展示 {usage}
                       </div>
                     </button>
                   );

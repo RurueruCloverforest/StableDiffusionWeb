@@ -1,7 +1,7 @@
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { CATEGORIES, categoryMeta } from '../state/categories';
-import { composePrompt, exhibitUsageCount } from '../state/prompt';
+import { comboUsageCount, composePrompt, exhibitUsageCount } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
 
@@ -11,6 +11,7 @@ export function RecipeMode() {
   const { isCopied, copy } = useCopy();
 
   const composed = composePrompt(materials, editSlots);
+  const comboCount = comboUsageCount(publications, editSlots.character, editSlots.situation, editSlots.outfit);
   const activeMeta = activeSlot ? categoryMeta(activeSlot) : null;
   const pickerItems = activeSlot ? materials.filter((m) => m.category === activeSlot) : [];
 
@@ -41,6 +42,9 @@ export function RecipeMode() {
               />
               展示の少ない素材を優先
             </label>
+            <div className="recipe__combo-count" title="今のキャラ・状況・服装の組み合わせが展示に何件あるか">
+              この組み合わせ: 展示 {comboCount} 件
+            </div>
           </div>
 
           <div className="recipe__slots">

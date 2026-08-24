@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { CATEGORIES } from '../state/categories';
 import { buildMaterialsExport, mergeImportedMaterials } from '../state/materialsIO';
-import { normalizeMaterial, useStore } from '../state/store';
+import { buildPublicationsExport, mergeImportedPublications } from '../state/publicationsIO';
+import { normalizeMaterial, normalizePublication, useStore } from '../state/store';
 
 interface Row {
   key: string;
@@ -29,22 +30,55 @@ export function SecondPanel() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportPublications = () => {
+    const payload = buildPublicationsExport(publications);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prompt-studio-publications-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportMaterialsFile = async (file: File) => {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const rawList = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.materials) ? parsed.materials : null;
+    if (!rawList) {
+      setIoMessage('素材データとして読み込めませんでした');
+      return;
+    }
+    const incoming = (rawList as Record<string, unknown>[]).map(normalizeMaterial);
+    const { addedCount, skippedCount } = mergeImportedMaterials(materials, incoming);
+    dispatch({ type: 'IMPORT_MATERIALS', materials: incoming });
+    setIoMessage(`${addedCount} 件追加${skippedCount > 0 ? `（${skippedCount} 件は既存のためスキップ）` : ''}`);
+  };
+
+  const handleImportPublicationsFile = async (file: File) => {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const rawList = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.publications) ? parsed.publications : null;
+    if (!rawList) {
+      setIoMessage('公開データとして読み込めませんでした');
+      return;
+    }
+    const incoming = (rawList as Record<string, unknown>[]).map(normalizePublication);
+    const { addedCount, skippedCount } = mergeImportedPublications(publications, incoming);
+    dispatch({ type: 'IMPORT_PUBLICATIONS', publications: incoming });
+    setIoMessage(`${addedCount} 件追加${skippedCount > 0 ? `（${skippedCount} 件は既存のためスキップ）` : ''}`);
+  };
+
   const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      const rawList = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.materials) ? parsed.materials : null;
-      if (!rawList) {
-        setIoMessage('素材データとして読み込めませんでした');
-        return;
+      if (mode === 'publish') {
+        await handleImportPublicationsFile(file);
+      } else {
+        await handleImportMaterialsFile(file);
       }
-      const incoming = (rawList as Record<string, unknown>[]).map(normalizeMaterial);
-      const { addedCount, skippedCount } = mergeImportedMaterials(materials, incoming);
-      dispatch({ type: 'IMPORT_MATERIALS', materials: incoming });
-      setIoMessage(`${addedCount} 件追加${skippedCount > 0 ? `（${skippedCount} 件は既存のためスキップ）` : ''}`);
     } catch {
       setIoMessage('JSONの読み込みに失敗しました');
     }
@@ -130,7 +164,7 @@ export function SecondPanel() {
         ))}
       </div>
       <div className="second-panel__bottom">
-        {mode === 'material' && (
+        {(mode === 'material' || mode === 'publish') && (
           <div className="second-panel__io">
             <input
               ref={importInputRef}
@@ -140,7 +174,11 @@ export function SecondPanel() {
               onChange={handleImportFile}
             />
             <div className="second-panel__io-buttons">
-              <button type="button" className="second-panel__io-btn" onClick={handleExportMaterials}>
+              <button
+                type="button"
+                className="second-panel__io-btn"
+                onClick={mode === 'publish' ? handleExportPublications : handleExportMaterials}
+              >
                 書き出し
               </button>
               <button type="button" className="second-panel__io-btn" onClick={() => importInputRef.current?.click()}>

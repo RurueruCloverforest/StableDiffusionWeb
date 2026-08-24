@@ -3,6 +3,7 @@ import type { Dispatch, ReactNode } from 'react';
 import type { Category, Material, MaterialDraft, Mode, Publication } from '../types';
 import { seedMaterials, seedPublications } from '../data/seed';
 import { mergeImportedMaterials } from './materialsIO';
+import { mergeImportedPublications } from './publicationsIO';
 import { composeName, emptySlots, randomizeSlots, recategorizePublication, type SlotMap } from './prompt';
 
 const STORAGE_KEY = 'prompt-studio:data';
@@ -29,7 +30,7 @@ export function normalizeMaterial(raw: Record<string, unknown>): Material {
 
 // 旧スキーマ（hasThumbnail/heroCount 等）で保存されたブラウザのデータでも
 // 欠けているフィールドを補って安全に読み込めるようにする
-function normalizePublication(raw: Record<string, unknown>): Publication {
+export function normalizePublication(raw: Record<string, unknown>): Publication {
   const heroSrc: unknown[] = Array.isArray(raw.heroImages) ? raw.heroImages : [];
   return {
     id: String(raw.id ?? `pub-${Date.now().toString(36)}`),
@@ -155,6 +156,7 @@ type Action =
   | { type: 'SAVE_MAT' }
   | { type: 'DELETE_MAT'; id: string }
   | { type: 'IMPORT_MATERIALS'; materials: Material[] }
+  | { type: 'IMPORT_PUBLICATIONS'; publications: Publication[] }
   | { type: 'SET_PUB_TAB'; tab: 'published' | 'draft' }
   | { type: 'SELECT_PUB'; id: string }
   | { type: 'NEW_PUB' }
@@ -309,6 +311,12 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'IMPORT_MATERIALS':
       return { ...state, materials: mergeImportedMaterials(state.materials, action.materials).merged };
+
+    case 'IMPORT_PUBLICATIONS': {
+      const merged = mergeImportedPublications(state.publications, action.publications).merged;
+      // 素材ID参照はインポート元と食い違いうるため、今の素材データへその場で再マッチングし直す
+      return { ...state, publications: merged.map((p) => recategorizePublication(state.materials, p)) };
+    }
 
     case 'SET_PUB_TAB':
       return { ...state, pubTab: action.tab };

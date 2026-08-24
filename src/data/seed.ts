@@ -1,3 +1,4 @@
+import { composePrompt } from '../state/prompt';
 import type { Material, Publication } from '../types';
 
 // プロトタイプの初期データ。実運用では localStorage 上のユーザーデータに置き換わる
@@ -35,6 +36,13 @@ export const seedPublications: Publication[] = [
   {
     id: 'pub-1',
     name: 'アリス・教室・制服・逆光',
+    prompt: composePrompt(seedMaterials, {
+      character: 'chr-1',
+      situation: 'sit-1',
+      outfit: 'out-1',
+      background: null,
+      effect: 'eff-1',
+    }),
     char: 'chr-1',
     situation: 'sit-1',
     outfit: 'out-1',
@@ -50,6 +58,13 @@ export const seedPublications: Publication[] = [
   {
     id: 'pub-2',
     name: 'アリス・夜の街・カジュアル',
+    prompt: composePrompt(seedMaterials, {
+      character: 'chr-1',
+      situation: 'sit-2',
+      outfit: 'out-2',
+      background: null,
+      effect: null,
+    }),
     char: 'chr-1',
     situation: 'sit-2',
     outfit: 'out-2',
@@ -65,6 +80,13 @@ export const seedPublications: Publication[] = [
   {
     id: 'pub-3',
     name: 'ミナト・屋上・ソフトフォーカス',
+    prompt: composePrompt(seedMaterials, {
+      character: 'chr-2',
+      situation: 'sit-4',
+      outfit: null,
+      background: null,
+      effect: 'eff-2',
+    }),
     char: 'chr-2',
     situation: 'sit-4',
     outfit: null,
@@ -80,6 +102,13 @@ export const seedPublications: Publication[] = [
   {
     id: 'pub-4',
     name: 'ユキ・ドレス・図書館',
+    prompt: composePrompt(seedMaterials, {
+      character: 'chr-3',
+      situation: null,
+      outfit: 'out-3',
+      background: 'bg-4',
+      effect: null,
+    }),
     char: 'chr-3',
     situation: null,
     outfit: 'out-3',

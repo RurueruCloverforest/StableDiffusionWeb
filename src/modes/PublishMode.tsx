@@ -4,7 +4,7 @@ import { MainHeader } from '../components/MainHeader';
 import { CATEGORIES } from '../state/categories';
 import { readAndResizeImage } from '../state/image';
 import { extractPromptFromPng } from '../state/pngMetadata';
-import { composePrompt, matchPromptToMaterials, publicationSlotValue, type SlotMap } from '../state/prompt';
+import { matchPromptToMaterials, needsRecategorization, publicationSlotValue } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
 
@@ -36,14 +36,7 @@ export function PublishMode() {
 
   useEffect(() => {
     if (!selected) return;
-    const slots: SlotMap = {
-      character: selected.char,
-      situation: selected.situation,
-      outfit: selected.outfit,
-      background: selected.background,
-      effect: selected.effect,
-    };
-    setPromptDraft(composePrompt(materials, slots));
+    setPromptDraft(selected.prompt);
     setMatchError(null);
     // 選択中の公開エントリが切り替わった時だけ初期値を入れ直す（編集中の内容は保持する）
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,6 +95,7 @@ export function PublishMode() {
     dispatch({
       type: 'SET_PUB_PARTS',
       id: selected.id,
+      prompt: value,
       char: matched.character,
       situation: matched.situation,
       outfit: matched.outfit,
@@ -135,7 +129,14 @@ export function PublishMode() {
                 <div className="pub-row__thumb is-empty" />
               )}
               <div className="pub-row__body">
-                <div className="pub-row__name">{p.name}</div>
+                <div className="pub-row__name-row">
+                  <div className="pub-row__name">{p.name}</div>
+                  {needsRecategorization(p) && (
+                    <div className="pub-row__warn" title="登録済みの素材から再分類できませんでした。素材が削除・変更された可能性があります">
+                      ⚠ 要再分類
+                    </div>
+                  )}
+                </div>
                 <div className={`pub-row__addr ${p.ipfsUrl ? 'is-set' : 'is-unset'}`}>
                   {p.ipfsUrl ? truncate(p.ipfsUrl, 26) : 'アドレス未設定'}
                 </div>
@@ -156,6 +157,11 @@ export function PublishMode() {
                 {selected.ipfsUrl ? `更新 ${selected.updatedAt}` : 'アドレス未設定 · 展示には出ません'}
               </div>
             </div>
+            {needsRecategorization(selected) && (
+              <div className="prompt-error">
+                プロンプトから素材を再分類できませんでした。参照していた素材が削除・変更された可能性があります。下のプロンプト欄を確認してください。
+              </div>
+            )}
 
             <input
               ref={fileInputRef}

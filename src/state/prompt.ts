@@ -103,6 +103,30 @@ export function matchPromptToMaterials(materials: Material[], promptText: string
   return result.character ? result : null;
 }
 
+/**
+ * 保存されているプロンプト文字列を、今の素材データに対して再マッチングし直し、
+ * キャラ・状況・服装・背景・演出を作り直す。素材が削除・変更されて追従できなく
+ * なったカテゴリは null（キャラは ''）になる。プロンプトが空の場合は何もしない
+ * （まだ一度もプロンプトを貼り付けていない下書きをリセットしないため）。
+ */
+export function recategorizePublication(materials: Material[], p: Publication): Publication {
+  if (!p.prompt.trim()) return p;
+  const matched = matchPromptToMaterials(materials, p.prompt);
+  return {
+    ...p,
+    char: matched?.character ?? '',
+    situation: matched?.situation ?? null,
+    outfit: matched?.outfit ?? null,
+    background: matched?.background ?? null,
+    effect: matched?.effect ?? null,
+  };
+}
+
+/** プロンプトはあるのにキャラが再マッチングできなかった（＝参照していた素材が消えた等）公開エントリか */
+export function needsRecategorization(p: Publication): boolean {
+  return p.prompt.trim() !== '' && p.char === '';
+}
+
 /** Publication の指定カテゴリに対応するフィールド値（character は char フィールド） */
 export function publicationSlotValue(p: Publication, cat: Category): string | null {
   switch (cat) {

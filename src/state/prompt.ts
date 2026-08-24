@@ -111,14 +111,15 @@ export function matchPromptToMaterials(materials: Material[], promptText: string
  */
 export function recategorizePublication(materials: Material[], p: Publication): Publication {
   if (!p.prompt.trim()) return p;
-  const matched = matchPromptToMaterials(materials, p.prompt);
+  const matched = matchPromptToMaterials(materials, p.prompt) ?? emptySlots();
   return {
     ...p,
-    char: matched?.character ?? '',
-    situation: matched?.situation ?? null,
-    outfit: matched?.outfit ?? null,
-    background: matched?.background ?? null,
-    effect: matched?.effect ?? null,
+    name: composeName(materials, matched),
+    char: matched.character ?? '',
+    situation: matched.situation,
+    outfit: matched.outfit,
+    background: matched.background,
+    effect: matched.effect,
   };
 }
 

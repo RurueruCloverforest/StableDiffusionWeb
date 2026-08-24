@@ -3,7 +3,7 @@ import type { Dispatch, ReactNode } from 'react';
 import type { Category, Material, MaterialDraft, Mode, Publication } from '../types';
 import { seedMaterials, seedPublications } from '../data/seed';
 import { mergeImportedMaterials } from './materialsIO';
-import { composeName, emptySlots, randomizeSlots, type SlotMap } from './prompt';
+import { composeName, emptySlots, randomizeSlots, recategorizePublication, type SlotMap } from './prompt';
 
 const STORAGE_KEY = 'prompt-studio:data';
 
@@ -34,6 +34,7 @@ function normalizePublication(raw: Record<string, unknown>): Publication {
   return {
     id: String(raw.id ?? `pub-${Date.now().toString(36)}`),
     name: typeof raw.name === 'string' ? raw.name : '無題',
+    prompt: typeof raw.prompt === 'string' ? raw.prompt : '',
     char: typeof raw.char === 'string' ? raw.char : '',
     situation: typeof raw.situation === 'string' ? raw.situation : null,
     outfit: typeof raw.outfit === 'string' ? raw.outfit : null,
@@ -49,6 +50,13 @@ function normalizePublication(raw: Record<string, unknown>): Publication {
 }
 
 function loadPersisted(): PersistedData {
+  const data = readPersisted();
+  // 保存されているキャラ・状況・服装・背景・演出のID参照は信用せず、保存済みプロンプトを
+  // 今の素材データへ毎回再マッチングし直す。これにより素材の削除・変更に自動で追従する
+  return { materials: data.materials, publications: data.publications.map((p) => recategorizePublication(data.materials, p)) };
+}
+
+function readPersisted(): PersistedData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -159,6 +167,7 @@ type Action =
   | {
       type: 'SET_PUB_PARTS';
       id: string;
+      prompt: string;
       char: string;
       situation: string | null;
       outfit: string | null;
@@ -326,6 +335,7 @@ function reducer(state: AppState, action: Action): AppState {
       const pub: Publication = {
         id: `pub-${Date.now().toString(36)}`,
         name: composeName(state.materials, slots),
+        prompt: '',
         char: firstChar?.id ?? '',
         situation: null,
         outfit: null,
@@ -406,6 +416,7 @@ function reducer(state: AppState, action: Action): AppState {
             ? {
                 ...p,
                 name,
+                prompt: action.prompt,
                 char: action.char,
                 situation: action.situation,
                 outfit: action.outfit,

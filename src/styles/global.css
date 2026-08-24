@@ -955,9 +955,26 @@ button {
   flex: 1;
   min-width: 0;
 }
+.pub-row__name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 .pub-row__name {
   font-size: 12.5px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pub-row__warn {
+  flex: none;
+  font: 400 9px/1 var(--font-mono);
+  color: var(--danger);
+  border: 1px solid rgba(200, 106, 106, 0.4);
+  border-radius: 4px;
+  padding: 2px 5px;
 }
 .pub-row__addr {
   font: 400 9.5px/1.4 var(--font-mono);

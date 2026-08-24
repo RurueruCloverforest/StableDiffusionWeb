@@ -146,6 +146,11 @@ export function publicationSlotValue(p: Publication, cat: Category): string | nu
   }
 }
 
+/** 指定カテゴリの素材が、展示済み（ipfsUrl設定済み）の公開エントリで何回使われているか */
+export function exhibitUsageCount(publications: Publication[], cat: Category, materialId: string): number {
+  return publications.filter((p) => p.ipfsUrl !== '' && publicationSlotValue(p, cat) === materialId).length;
+}
+
 function weightedPick(candidates: Material[], weights: number[]): Material {
   const total = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
@@ -169,7 +174,6 @@ export function randomizeSlots(
   lockedSlots: Record<Category, boolean>,
   weighted: boolean,
 ): SlotMap {
-  const published = publications.filter((p) => p.ipfsUrl !== '');
   const result: SlotMap = { ...currentSlots };
 
   for (const cat of CATEGORIES) {
@@ -183,10 +187,7 @@ export function randomizeSlots(
       result[cat.id] = candidates[Math.floor(Math.random() * candidates.length)].id;
       continue;
     }
-    const weights = candidates.map((m) => {
-      const usage = published.filter((p) => publicationSlotValue(p, cat.id) === m.id).length;
-      return 1 / (usage + 1);
-    });
+    const weights = candidates.map((m) => 1 / (exhibitUsageCount(publications, cat.id, m.id) + 1));
     result[cat.id] = weightedPick(candidates, weights).id;
   }
 

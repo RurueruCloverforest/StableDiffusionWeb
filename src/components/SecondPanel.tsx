@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { CATEGORIES } from '../state/categories';
+import { groupByCategory } from '../state/exhibitGroups';
 import { buildMaterialsExport, mergeImportedMaterials } from '../state/materialsIO';
 import { buildPublicationsExport, mergeImportedPublications } from '../state/publicationsIO';
 import { normalizeMaterial, normalizePublication, useStore } from '../state/store';
@@ -131,24 +132,23 @@ export function SecondPanel() {
   } else if (mode === 'exhibit') {
     title = '展示';
     sectionLabel = 'CHARACTER';
-    const published = publications.filter((p) => p.ipfsUrl !== '');
-    const characters = materials.filter(
-      (m) => m.category === 'character' && published.some((p) => p.char === m.id),
-    );
+    // キャラが再マッチングできなかったエントリ（char === ''）は展示に出さない（ExhibitMode と同じ条件）
+    const published = publications.filter((p) => p.ipfsUrl !== '' && p.char !== '');
+    const charGroups = groupByCategory(published, materials, 'character');
     rows = [
       {
         key: '__all__',
         label: 'すべて',
-        count: characters.length,
+        count: charGroups.length,
         active: exChar === null,
         onClick: () => dispatch({ type: 'SELECT_EX_CHAR', id: null }),
       },
-      ...characters.map((c) => ({
-        key: c.id,
-        label: c.name,
-        count: published.filter((p) => p.char === c.id).length,
-        active: exChar === c.id,
-        onClick: () => dispatch({ type: 'SELECT_EX_CHAR', id: c.id }),
+      ...charGroups.map((g) => ({
+        key: g.id,
+        label: g.label,
+        count: g.items.length,
+        active: exChar === g.id,
+        onClick: () => dispatch({ type: 'SELECT_EX_CHAR', id: g.id }),
       })),
     ];
   }

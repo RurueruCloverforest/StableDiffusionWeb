@@ -9,6 +9,16 @@
 - 「追加読み込み」「参照読み込み」のどちらのボタンで読み込んだかによって `isReference` が上書きされる。JSON側にどう書いてあっても関係ない
 - 書き出し（エクスポート）は `isReference: true` のものを除外する
 
+### 画像フィールド（refImage / thumbnail / heroImages）
+
+`Material.refImage`、`Publication.thumbnail`、`Publication.heroImages` はいずれも文字列の **data URL**（例: `data:image/jpeg;base64,...`）をそのまま `localStorage` に保存する。アプリ自身がアップロード時に行っている変換に合わせて、外部スクリプトでも以下を目安にするとよい（サイズは厳密なチェックはしていないので、多少超えても壊れはしない）。
+
+- 形式: JPEG
+- 長辺: 約640px
+- ファイルサイズ: 目安として1枚あたり200KB程度以内（アプリ自身が出す画像は640px・quality 0.82で大体40〜120KB程度）
+
+`localStorage` はオリジンごとに5〜10MB程度が上限なので、画像を機械的に大量投入する場合はこの目安を大きく外れないようにしたほうが安全、というだけの理由。厳密な制限値ではない。
+
 ## 素材データ（Materials）
 
 ### 書き出しファイル形式
@@ -34,7 +44,7 @@
 | `alternativeName` | string | 任意 | `""` | 派生名称（バージョン違いなどのバリエーション）。空文字なら「派生ではない」。表示名は `name:alternativeName`。**展示のグルーピングは `name` のみで行われ、`alternativeName` は無視される** |
 | `tags` | string[] | 任意 | `[]` | プロンプトタグ。配列内の非文字列要素は除外される |
 | `note` | string | 任意 | `""` | メモ |
-| `refImage` | string \| null | 任意 | `null` | 参照画像の data URL |
+| `refImage` | string \| null | 任意 | `null` | 参照画像の data URL（形式の目安は上記「画像フィールド」参照） |
 | `isReference` | boolean | — | — | **読み込み時に使ったボタンで上書きされるため、送っても無視される** |
 
 ### 重複判定（追加のみマージ）
@@ -77,8 +87,8 @@
 | `char` / `situation` / `outfit` / `background` / `effect` | string \| null | 不要 | — | `prompt` が空でなければ、読み込み時に `prompt` から作り直されて**上書きされる**。`prompt` を空のまま送った場合だけ、ここに書いた生の値がそのまま使われる（通常は使わない想定）。基本的には `prompt` だけを送れば十分 |
 | `ipfsUrl` | string | 実質必須 | `""` | `ipfs://` 込みの完全な形で入れる。空だと「未設定（下書き）」タブに入り、展示にも出ない |
 | `httpUrl` | string | 任意 | `""` | 予備のゲートウェイURL |
-| `thumbnail` | string \| null | 任意 | `null` | サムネイルの data URL |
-| `heroImages` | (string\|null)[] | 任意 | `[null,null,null]` | 代表画像3枚分。長さが3以外でも先頭3件に丸められる |
+| `thumbnail` | string \| null | 任意 | `null` | サムネイルの data URL（形式の目安は上記「画像フィールド」参照） |
+| `heroImages` | (string\|null)[] | 任意 | `[null,null,null]` | 代表画像3枚分。長さが3以外でも先頭3件に丸められる（形式の目安は上記「画像フィールド」参照） |
 | `count` | number | 任意 | `0` | 収録枚数 |
 | `updatedAt` | string | 任意 | 今日の日付 | 表示用の日付文字列（`YYYY-MM-DD`推奨） |
 | `isReference` | boolean | — | — | **読み込み時に使ったボタンで上書きされるため、送っても無視される** |

@@ -3,8 +3,9 @@ import type { ChangeEvent, DragEvent, KeyboardEvent } from 'react';
 import { MainHeader } from '../components/MainHeader';
 import { categoryMeta } from '../state/categories';
 import { readAndResizeImage } from '../state/image';
-import { previewFragments } from '../state/prompt';
+import { buildReferenceImagePrompt, previewFragments } from '../state/prompt';
 import { useStore } from '../state/store';
+import { useCopy } from '../state/useCopy';
 
 export function MaterialForm() {
   const { state, dispatch } = useStore();
@@ -14,6 +15,7 @@ export function MaterialForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const { isCopied, copy } = useCopy();
 
   const backMeta = matEdit === 'new'
     ? '新規'
@@ -23,6 +25,7 @@ export function MaterialForm() {
 
   const { fragment, rest } = previewFragments(materials, editSlots, matCat, matDraft.tags);
   const hasTags = matDraft.tags.length > 0;
+  const refPrompt = buildReferenceImagePrompt(matCat, matDraft.tags);
 
   const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -208,6 +211,28 @@ export function MaterialForm() {
             <div className="fragment-box">
               {hasTags ? matDraft.tags.join(', ') : 'タグを追加すると、ここに断片が出ます'}
             </div>
+          </div>
+          <div className="field">
+            <div className="field__label-row">
+              <div className="section-label">参照画像用プロンプト</div>
+              <div className="field__hint">固定タグで仮組みした叩き台。狙い通りの絵になるとは限りません</div>
+            </div>
+            {hasTags ? (
+              <div>
+                <div className="fragment-box">{refPrompt}</div>
+                <button
+                  type="button"
+                  className="btn-link ref-prompt-copy"
+                  onClick={() => copy('mat-ref-prompt', refPrompt)}
+                >
+                  {isCopied('mat-ref-prompt') ? 'コピーしました ✓' : 'コピー'}
+                </button>
+              </div>
+            ) : (
+              <div className="fragment-box fragment-box--empty">
+                タグを追加すると、ここに参照画像生成用のプロンプトが出ます
+              </div>
+            )}
           </div>
           <div className="field">
             <div className="section-label">合成プレビュー</div>

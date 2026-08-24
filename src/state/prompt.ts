@@ -193,6 +193,27 @@ export function randomizeSlots(
   return result;
 }
 
+/**
+ * 参照画像（サムネイル）生成の叩き台となるプロンプトを組む補助タグ。
+ * カテゴリだけでは「誰が/何が写るか」が決まらない服装・演出には仮の被写体
+ * （1girl, solo）を足し、状況・背景は逆に人物なしの構図にする。あくまで
+ * 固定の組み合わせによる叩き台で、狙い通りの絵になるとは限らない。
+ */
+const REFERENCE_PROMPT_FILLER: Record<Category, { before: string[]; after: string[] }> = {
+  character: { before: [], after: ['solo', 'simple background', 'white background', 'looking at viewer', 'upper body', 'best quality', 'masterpiece'] },
+  situation: { before: [], after: ['no humans', 'scenery', 'wide shot', 'best quality', 'masterpiece'] },
+  outfit: { before: ['1girl', 'solo'], after: ['simple background', 'white background', 'standing', 'looking at viewer', 'best quality', 'masterpiece'] },
+  background: { before: [], after: ['no humans', 'scenery', 'wide shot', 'best quality', 'masterpiece'] },
+  effect: { before: ['1girl', 'solo'], after: ['simple background', 'best quality', 'masterpiece'] },
+};
+
+/** 素材のタグに、上記の固定タグを足して参照画像用プロンプトを組む。タグが無ければ空文字 */
+export function buildReferenceImagePrompt(category: Category, tags: string[]): string {
+  if (tags.length === 0) return '';
+  const filler = REFERENCE_PROMPT_FILLER[category];
+  return [...filler.before, ...tags, ...filler.after].join(', ');
+}
+
 /** 素材フォームでの合成プレビュー: 編集中のタグ + 作業中プロンプトの他カテゴリのタグ */
 export function previewFragments(
   materials: Material[],

@@ -1487,6 +1487,12 @@ button {
   border-color: rgba(255, 255, 255, 0.28);
   color: var(--text);
 }
+.ref-prompt-copy {
+  display: inline-flex;
+  width: auto;
+  padding: 0 14px;
+  margin-top: 8px;
+}
 
 .exhibit-aside {
   width: 300px;

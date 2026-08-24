@@ -18,6 +18,8 @@ export function SecondPanel() {
   const { mode, materials, publications, matCat, pubTab, exChar } = state;
   const importInputRef = useRef<HTMLInputElement>(null);
   const [ioMessage, setIoMessage] = useState<string | null>(null);
+  // useState だと click() 直後に change イベントが来た場合に古い値のまま読まれることがあるため ref で持つ
+  const importAsReferenceRef = useRef(false);
 
   const handleExportMaterials = () => {
     const payload = buildMaterialsExport(materials);
@@ -41,7 +43,7 @@ export function SecondPanel() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportMaterialsFile = async (file: File) => {
+  const handleImportMaterialsFile = async (file: File, asReference: boolean) => {
     const text = await file.text();
     const parsed = JSON.parse(text);
     const rawList = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.materials) ? parsed.materials : null;
@@ -50,12 +52,12 @@ export function SecondPanel() {
       return;
     }
     const incoming = (rawList as Record<string, unknown>[]).map(normalizeMaterial);
-    const { addedCount, skippedCount } = mergeImportedMaterials(materials, incoming);
-    dispatch({ type: 'IMPORT_MATERIALS', materials: incoming });
+    const { addedCount, skippedCount } = mergeImportedMaterials(materials, incoming, asReference);
+    dispatch({ type: 'IMPORT_MATERIALS', materials: incoming, asReference });
     setIoMessage(`${addedCount} 件追加${skippedCount > 0 ? `（${skippedCount} 件は既存のためスキップ）` : ''}`);
   };
 
-  const handleImportPublicationsFile = async (file: File) => {
+  const handleImportPublicationsFile = async (file: File, asReference: boolean) => {
     const text = await file.text();
     const parsed = JSON.parse(text);
     const rawList = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.publications) ? parsed.publications : null;
@@ -64,8 +66,8 @@ export function SecondPanel() {
       return;
     }
     const incoming = (rawList as Record<string, unknown>[]).map(normalizePublication);
-    const { addedCount, skippedCount } = mergeImportedPublications(publications, incoming);
-    dispatch({ type: 'IMPORT_PUBLICATIONS', publications: incoming });
+    const { addedCount, skippedCount } = mergeImportedPublications(publications, incoming, asReference);
+    dispatch({ type: 'IMPORT_PUBLICATIONS', publications: incoming, asReference });
     setIoMessage(`${addedCount} 件追加${skippedCount > 0 ? `（${skippedCount} 件は既存のためスキップ）` : ''}`);
   };
 
@@ -75,13 +77,18 @@ export function SecondPanel() {
     if (!file) return;
     try {
       if (mode === 'publish') {
-        await handleImportPublicationsFile(file);
+        await handleImportPublicationsFile(file, importAsReferenceRef.current);
       } else {
-        await handleImportMaterialsFile(file);
+        await handleImportMaterialsFile(file, importAsReferenceRef.current);
       }
     } catch {
       setIoMessage('JSONの読み込みに失敗しました');
     }
+  };
+
+  const openImport = (asReference: boolean) => {
+    importAsReferenceRef.current = asReference;
+    importInputRef.current?.click();
   };
 
   if (mode === 'recipe') return null;
@@ -181,8 +188,16 @@ export function SecondPanel() {
               >
                 書き出し
               </button>
-              <button type="button" className="second-panel__io-btn" onClick={() => importInputRef.current?.click()}>
-                読み込み
+              <button type="button" className="second-panel__io-btn" onClick={() => openImport(false)}>
+                追加読み込み
+              </button>
+              <button
+                type="button"
+                className="second-panel__io-btn"
+                title="他人のデータを取り込んで使う。書き出し時にはこの分は含まれません"
+                onClick={() => openImport(true)}
+              >
+                参照読み込み
               </button>
             </div>
             {ioMessage && <div className="second-panel__io-msg">{ioMessage}</div>}

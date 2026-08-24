@@ -76,8 +76,10 @@ function resolveSubsetConflicts(materials: Material[], slots: SlotMap): void {
  * カテゴリごとに「そのタグ列がプロンプト中にひとかたまり（連続・順序一致）で
  * 含まれている素材」を探して採用する。実際の生成時に付け足された品質タグなど、
  * 素材に登録されていない余分なタグがプロンプト側にあっても構わない
- * （= 完全一致ではなく包含判定）。カテゴリをまたいで部分集合の関係にある
- * マッチが同時に成立した場合は resolveSubsetConflicts で上位集合側に一本化する。
+ * （= 完全一致ではなく包含判定）。同一カテゴリ内で複数の素材が同時にマッチした
+ * 場合（部分集合関係にある素材同士など）は、タグ集合が一番大きいものを採用する。
+ * カテゴリをまたいで部分集合の関係にあるマッチが同時に成立した場合は
+ * resolveSubsetConflicts で上位集合側に一本化する。
  * キャラに該当する素材が1つも見つからなければ null（＝このアプリの素材から
  * 生成されたプロンプトではないと判断）。
  */
@@ -90,7 +92,9 @@ export function matchPromptToMaterials(materials: Material[], promptText: string
   const result = emptySlots();
   for (const cat of CATEGORIES) {
     const candidates = materials.filter((m) => m.category === cat.id && m.tags.length > 0);
-    const found = candidates.find((m) => containsBlock(tags, m.tags));
+    const matched = candidates.filter((m) => containsBlock(tags, m.tags));
+    // 同カテゴリ内で複数マッチした場合は、タグ集合が一番大きい（＝より具体的な）ものを採用する
+    const found = matched.sort((a, b) => b.tags.length - a.tags.length)[0];
     result[cat.id] = found?.id ?? null;
   }
 

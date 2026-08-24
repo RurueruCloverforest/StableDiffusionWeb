@@ -83,6 +83,16 @@ button {
   font-size: 13px;
   overflow: hidden;
 }
+.app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: var(--main-bg);
+  color: var(--text-faint);
+  font-size: 13px;
+}
 
 .mode-rail {
   width: 64px;

@@ -2,11 +2,14 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import type { Dispatch, ReactNode } from 'react';
 import type { Category, Material, MaterialDraft, Mode, Publication } from '../types';
 import { seedMaterials, seedPublications } from '../data/seed';
+import { idbGet, idbSet } from './idb';
 import { mergeImportedMaterials } from './materialsIO';
 import { mergeImportedPublications } from './publicationsIO';
 import { composeName, emptySlots, randomizeSlots, recategorizePublication, type SlotMap } from './prompt';
 
+// IndexedDB 上のレコードキー。旧バージョンの localStorage キーは移行元としてのみ参照する
 const STORAGE_KEY = 'prompt-studio:data';
+const LEGACY_LOCAL_STORAGE_KEY = 'prompt-studio:data';
 
 interface PersistedData {
   materials: Material[];
@@ -53,26 +56,36 @@ export function normalizePublication(raw: Record<string, unknown>): Publication 
   };
 }
 
-function loadPersisted(): PersistedData {
-  const data = readPersisted();
+async function loadPersisted(): Promise<PersistedData> {
+  const data = await readPersisted();
   // 保存されているキャラ・状況・服装・背景・演出のID参照は信用せず、保存済みプロンプトを
   // 今の素材データへ毎回再マッチングし直す。これにより素材の削除・変更に自動で追従する
   return { materials: data.materials, publications: data.publications.map((p) => recategorizePublication(data.materials, p)) };
 }
 
-function readPersisted(): PersistedData {
+function parsePersisted(parsed: unknown): PersistedData {
+  const materials = Array.isArray((parsed as Record<string, unknown> | null)?.materials)
+    ? ((parsed as Record<string, unknown>).materials as Record<string, unknown>[]).map(normalizeMaterial)
+    : seedMaterials;
+  const publications = Array.isArray((parsed as Record<string, unknown> | null)?.publications)
+    ? ((parsed as Record<string, unknown>).publications as Record<string, unknown>[]).map(normalizePublication)
+    : seedPublications;
+  return { materials, publications };
+}
+
+async function readPersisted(): Promise<PersistedData> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      // JSON.parse は any を返す。既知の形に強制せず、フィールドごとに検証しながら読み込む
-      const parsed = JSON.parse(raw);
-      const materials = Array.isArray(parsed?.materials)
-        ? (parsed.materials as Record<string, unknown>[]).map(normalizeMaterial)
-        : seedMaterials;
-      const publications = Array.isArray(parsed?.publications)
-        ? (parsed.publications as Record<string, unknown>[]).map(normalizePublication)
-        : seedPublications;
-      return { materials, publications };
+    const stored = await idbGet<PersistedData>(STORAGE_KEY);
+    if (stored) return parsePersisted(stored);
+
+    // IndexedDB にまだ何も無い場合、旧バージョンで使っていた localStorage からの
+    // 一度きりの移行を試みる（localStorage は 5〜10MB 程度で容量が厳しいため IndexedDB へ移行した）。
+    // 移行元の localStorage のデータは削除せず、そのまま残しておく
+    const legacyRaw = localStorage.getItem(LEGACY_LOCAL_STORAGE_KEY);
+    if (legacyRaw) {
+      const data = parsePersisted(JSON.parse(legacyRaw));
+      await idbSet(STORAGE_KEY, data).catch(() => {});
+      return data;
     }
   } catch {
     // 壊れたデータは無視してシードにフォールバック
@@ -81,6 +94,8 @@ function readPersisted(): PersistedData {
 }
 
 interface AppState extends PersistedData {
+  /** IndexedDB からの初回読み込みが完了したか。完了前は永続化用の書き込みを行わない */
+  loaded: boolean;
   mode: Mode;
 
   // レシピ
@@ -115,11 +130,12 @@ const emptyLocks = (): Record<Category, boolean> => ({
   effect: false,
 });
 
+// IndexedDB からの読み込みは非同期なので、読み込み完了までは空データで待機する
 function initialState(): AppState {
-  const persisted = loadPersisted();
-  const firstPub = persisted.publications.find((p) => p.ipfsUrl !== '') ?? persisted.publications[0] ?? null;
   return {
-    ...persisted,
+    materials: [],
+    publications: [],
+    loaded: false,
     mode: 'recipe',
     editSlots: emptySlots(),
     activeSlot: null,
@@ -129,8 +145,8 @@ function initialState(): AppState {
     matEdit: null,
     matDraft: emptyDraft,
     matNewTag: '',
-    pubTab: firstPub && firstPub.ipfsUrl !== '' ? 'published' : 'draft',
-    pubId: firstPub?.id ?? null,
+    pubTab: 'draft',
+    pubId: null,
     exChar: null,
     exSituation: null,
     exOutfit: null,
@@ -138,6 +154,7 @@ function initialState(): AppState {
 }
 
 type Action =
+  | { type: 'HYDRATE'; materials: Material[]; publications: Publication[] }
   | { type: 'SET_MODE'; mode: Mode }
   | { type: 'SELECT_SLOT'; category: Category }
   | { type: 'SET_SLOT'; category: Category; materialId: string }
@@ -186,6 +203,18 @@ type Action =
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'HYDRATE': {
+      const firstPub = action.publications.find((p) => p.ipfsUrl !== '') ?? action.publications[0] ?? null;
+      return {
+        ...state,
+        materials: action.materials,
+        publications: action.publications,
+        loaded: true,
+        pubTab: firstPub && firstPub.ipfsUrl !== '' ? 'published' : 'draft',
+        pubId: firstPub?.id ?? null,
+      };
+    }
+
     case 'SET_MODE':
       return { ...state, mode: action.mode, activeSlot: null, matEdit: null };
 
@@ -487,10 +516,25 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
 
+  // 初回のみ、IndexedDB（無ければ旧 localStorage から移行）を読み込んで反映する
   useEffect(() => {
+    let cancelled = false;
+    loadPersisted().then(({ materials, publications }) => {
+      if (!cancelled) dispatch({ type: 'HYDRATE', materials, publications });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 初回読み込みが終わるまでは、空データで上書き保存してしまわないよう書き込みを止める
+  useEffect(() => {
+    if (!state.loaded) return;
     const data: PersistedData = { materials: state.materials, publications: state.publications };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [state.materials, state.publications]);
+    idbSet(STORAGE_KEY, data).catch(() => {
+      // 書き込み失敗（容量超過など）はここでは通知しない。今後 UI 側で表示する余地はある
+    });
+  }, [state.loaded, state.materials, state.publications]);
 
   const value = useMemo(() => ({ state, dispatch }), [state]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

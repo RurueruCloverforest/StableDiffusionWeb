@@ -9,6 +9,10 @@ import { useStore } from './state/store';
 export default function App() {
   const { state } = useStore();
 
+  if (!state.loaded) {
+    return <div className="app-loading">読み込み中…</div>;
+  }
+
   return (
     <div className="app">
       <ModeRail />

@@ -11,13 +11,13 @@
 
 ### 画像フィールド（refImage / thumbnail / heroImages）
 
-`Material.refImage`、`Publication.thumbnail`、`Publication.heroImages` はいずれも文字列の **data URL**（例: `data:image/jpeg;base64,...`）をそのまま `localStorage` に保存する。アプリ自身がアップロード時に行っている変換に合わせて、外部スクリプトでも以下を目安にするとよい（サイズは厳密なチェックはしていないので、多少超えても壊れはしない）。
+`Material.refImage`、`Publication.thumbnail`、`Publication.heroImages` はいずれも文字列の **data URL**（例: `data:image/jpeg;base64,...`）をそのまま IndexedDB に保存する。アプリ自身がアップロード時に行っている変換に合わせて、外部スクリプトでも以下を目安にするとよい（サイズは厳密なチェックはしていないので、多少超えても壊れはしない）。
 
 - 形式: JPEG
 - 長辺: 約640px
 - ファイルサイズ: 目安として1枚あたり200KB程度以内（アプリ自身が出す画像は640px・quality 0.82で大体40〜120KB程度）
 
-`localStorage` はオリジンごとに5〜10MB程度が上限なので、画像を機械的に大量投入する場合はこの目安を大きく外れないようにしたほうが安全、というだけの理由。厳密な制限値ではない。
+IndexedDB は `localStorage`（オリジンごとに5〜10MB程度）より大幅に大きい容量を扱えるが、無制限ではないので、画像を機械的に大量投入する場合はこの目安を大きく外れないようにしたほうが安全、というだけの理由。厳密な制限値ではない。
 
 ## 素材データ（Materials）
 

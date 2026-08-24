@@ -1,7 +1,7 @@
 import { composePrompt } from '../state/prompt';
 import type { Material, Publication } from '../types';
 
-// プロトタイプの初期データ。実運用では localStorage 上のユーザーデータに置き換わる
+// プロトタイプの初期データ。実運用では IndexedDB 上のユーザーデータに置き換わる
 // （state/store.tsx 参照）。シード段階では画像を同梱していないため refImage/thumbnail/heroImages は null。
 export const seedMaterials: Material[] = [
   { id: 'chr-1', category: 'character', name: 'アリス', tags: ['1girl', 'silver hair', 'long hair', 'blue eyes', 'gothic lolita'], alternativeName: '', note: 'メインヒロイン。逆光と相性がいい', refImage: null, isReference: false },

@@ -27,10 +27,12 @@ npm run preview
 
 ## データの永続化
 
-素材 (`Material`) と 公開エントリ (`Publication`) はブラウザの `localStorage`（キー: `prompt-studio:data`）に保存される。バックエンドは存在しない、単一ユーザー・単一ブラウザ向けのプロトタイプ実装。
+素材 (`Material`) と 公開エントリ (`Publication`) はブラウザの **IndexedDB**（`src/state/idb.ts`、DB名 `prompt-studio`、キー: `prompt-studio:data`）に保存される。バックエンドは存在しない、単一ユーザー・単一ブラウザ向けのプロトタイプ実装。
 
 - 初回起動時はシードデータ（`src/data/seed.ts`）が読み込まれる
 - 別のブラウザ/端末とはデータを共有しない
+- IndexedDB の読み込みは非同期のため、起動直後は一瞬「読み込み中…」が表示される
+- 旧バージョン（`localStorage` を使っていた頃）のデータが残っている場合、IndexedDB 側が空であれば起動時に自動で一度だけ移行する。移行元の `localStorage` のデータは削除せず、そのまま残す（`localStorage` は容量が5〜10MB程度と厳しいため IndexedDB へ移行した）
 - 将来 API 連携する場合は `src/state/store.tsx` の `loadPersisted` / 永続化 `useEffect` を差し替える想定
 
 ### 内部データモデル

@@ -6,6 +6,10 @@ export interface Material {
   id: string;
   category: Category;
   name: string;
+  /** 派生名称。同じ name のバリエーション（バージョン違いなど）を作るときに使う。
+   * 空文字は「派生ではない基準の素材」を意味する。表示名は name:alternativeName、
+   * 展示のグルーピングは name のみで行う（マッチング・プロンプト合成には一切影響しない） */
+  alternativeName: string;
   tags: string[];
   note: string;
   /** 参照画像（key visual）の data URL。未設定は null */
@@ -41,6 +45,7 @@ export interface Publication {
 
 export interface MaterialDraft {
   name: string;
+  alternativeName: string;
   tags: string[];
   note: string;
   refImage: string | null;

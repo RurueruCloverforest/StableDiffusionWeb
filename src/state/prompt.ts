@@ -14,17 +14,23 @@ export const emptySlots = (): SlotMap => ({
 const findMaterial = (materials: Material[], id: string | null): Material | undefined =>
   id == null ? undefined : materials.find((m) => m.id === id);
 
+/** 素材の表示名。派生名称があれば「名称:派生名称」、無ければ名称のみ */
+export function materialDisplayName(m: Material): string {
+  return m.alternativeName ? `${m.name}:${m.alternativeName}` : m.name;
+}
+
 /** カテゴリ順（キャラ→状況→服装→背景→演出）でタグを , 連結する */
 export function composePrompt(materials: Material[], slots: SlotMap): string {
   const tags = CATEGORIES.flatMap((c) => findMaterial(materials, slots[c.id])?.tags ?? []);
   return tags.length ? tags.join(', ') : '—';
 }
 
-/** 解決済みスロットのキャラ・状況・服装・背景・演出の名前を , ではなく ・ で連結した表示名 */
+/** 解決済みスロットのキャラ・状況・服装・背景・演出の表示名を , ではなく ・ で連結した表示名 */
 export function composeName(materials: Material[], slots: SlotMap): string {
-  const names = CATEGORIES.map((c) => findMaterial(materials, slots[c.id])?.name).filter(
-    (n): n is string => !!n,
-  );
+  const names = CATEGORIES.map((c) => {
+    const mat = findMaterial(materials, slots[c.id]);
+    return mat ? materialDisplayName(mat) : undefined;
+  }).filter((n): n is string => !!n);
   return names.length ? names.join('・') : '無題';
 }
 

@@ -22,6 +22,7 @@ export function normalizeMaterial(raw: Record<string, unknown>): Material {
     id: String(raw.id ?? `mat-${Date.now().toString(36)}`),
     category: CATEGORY_VALUES.includes(raw.category as Category) ? (raw.category as Category) : 'character',
     name: typeof raw.name === 'string' ? raw.name : '無題',
+    alternativeName: typeof raw.alternativeName === 'string' ? raw.alternativeName : '',
     tags: Array.isArray(raw.tags) ? raw.tags.filter((t): t is string => typeof t === 'string') : [],
     note: typeof raw.note === 'string' ? raw.note : '',
     refImage: typeof raw.refImage === 'string' ? raw.refImage : null,
@@ -104,7 +105,7 @@ interface AppState extends PersistedData {
   exOutfit: string | null;
 }
 
-const emptyDraft: MaterialDraft = { name: '', tags: [], note: '', refImage: null };
+const emptyDraft: MaterialDraft = { name: '', alternativeName: '', tags: [], note: '', refImage: null };
 
 const emptyLocks = (): Record<Category, boolean> => ({
   character: false,
@@ -148,6 +149,7 @@ type Action =
   | { type: 'OPEN_MAT_EDIT'; id: string }
   | { type: 'CANCEL_MAT_EDIT' }
   | { type: 'SET_MAT_NAME'; value: string }
+  | { type: 'SET_MAT_ALT_NAME'; value: string }
   | { type: 'SET_MAT_NOTE'; value: string }
   | { type: 'SET_MAT_NEW_TAG'; value: string }
   | { type: 'ADD_MAT_TAG' }
@@ -229,7 +231,13 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         matEdit: action.id,
-        matDraft: { name: mat.name, tags: [...mat.tags], note: mat.note, refImage: mat.refImage },
+        matDraft: {
+          name: mat.name,
+          alternativeName: mat.alternativeName,
+          tags: [...mat.tags],
+          note: mat.note,
+          refImage: mat.refImage,
+        },
         matNewTag: '',
       };
     }
@@ -239,6 +247,9 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'SET_MAT_NAME':
       return { ...state, matDraft: { ...state.matDraft, name: action.value } };
+
+    case 'SET_MAT_ALT_NAME':
+      return { ...state, matDraft: { ...state.matDraft, alternativeName: action.value } };
 
     case 'SET_MAT_NOTE':
       return { ...state, matDraft: { ...state.matDraft, note: action.value } };
@@ -287,6 +298,7 @@ function reducer(state: AppState, action: Action): AppState {
           id: `mat-${Date.now().toString(36)}`,
           category: state.matCat,
           name,
+          alternativeName: state.matDraft.alternativeName.trim(),
           tags: state.matDraft.tags,
           note: state.matDraft.note,
           refImage: state.matDraft.refImage,
@@ -300,7 +312,14 @@ function reducer(state: AppState, action: Action): AppState {
           ...state,
           materials: state.materials.map((m) =>
             m.id === id
-              ? { ...m, name, tags: state.matDraft.tags, note: state.matDraft.note, refImage: state.matDraft.refImage }
+              ? {
+                  ...m,
+                  name,
+                  alternativeName: state.matDraft.alternativeName.trim(),
+                  tags: state.matDraft.tags,
+                  note: state.matDraft.note,
+                  refImage: state.matDraft.refImage,
+                }
               : m,
           ),
           matEdit: null,

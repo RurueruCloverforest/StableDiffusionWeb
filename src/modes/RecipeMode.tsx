@@ -1,7 +1,7 @@
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { CATEGORIES, categoryMeta } from '../state/categories';
-import { comboUsageCount, composePrompt, exhibitUsageCount } from '../state/prompt';
+import { comboUsageCount, composePrompt, exhibitUsageCount, materialDisplayName } from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
 
@@ -69,7 +69,9 @@ export function RecipeMode() {
                     <div className="slot-row__thumb is-empty" />
                   )}
                   <div className="slot-row__body">
-                    <div className={`slot-row__name ${material ? '' : 'is-empty'}`}>{material?.name ?? '未設定'}</div>
+                    <div className={`slot-row__name ${material ? '' : 'is-empty'}`}>
+                      {material ? materialDisplayName(material) : '未設定'}
+                    </div>
                     <div className={`slot-row__tag ${material ? '' : 'is-empty'}`}>
                       {material ? material.tags.join(', ') : 'クリックして選ぶ'}
                     </div>
@@ -125,7 +127,7 @@ export function RecipeMode() {
                         <StripedThumb size="md" className="picker__thumb" />
                       )}
                       <div className="picker__body">
-                        <div className="picker__name">{item.name}</div>
+                        <div className="picker__name">{materialDisplayName(item)}</div>
                         <div className="picker__tag">{item.tags.join(', ')}</div>
                       </div>
                       <div className="picker__usage" title="展示に登録済みの件数">

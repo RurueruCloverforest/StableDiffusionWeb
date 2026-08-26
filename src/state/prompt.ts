@@ -152,6 +152,34 @@ export function publicationSlotValue(p: Publication, cat: Category): string | nu
   }
 }
 
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/**
+ * 公開エントリ群から代表画像（サムネイル優先、無ければ代表画像の先頭）を持つものを
+ * 1件“ランダムに”選んで返す。seed に基づく決定的な選択のため、再描画のたびに変わらない。
+ * 該当が無ければ null。
+ */
+export function pickFallbackImage(seed: string, publications: Publication[]): string | null {
+  const candidates = publications
+    .map((p) => p.thumbnail ?? p.heroImages.find((h) => h) ?? null)
+    .filter((src): src is string => !!src);
+  if (candidates.length === 0) return null;
+  return candidates[hashString(seed) % candidates.length];
+}
+
+/**
+ * 素材に参照画像 (refImage) が設定されていない場合の代替表示用に、その素材を実際に
+ * 使っている公開エントリの画像を1件拾ってくる。該当が無ければ null。
+ */
+export function materialFallbackImage(material: Material, publications: Publication[]): string | null {
+  const used = publications.filter((p) => publicationSlotValue(p, material.category) === material.id);
+  return pickFallbackImage(material.id, used);
+}
+
 /** 指定カテゴリの素材が、展示済み（ipfsUrl設定済み）の公開エントリで何回使われているか */
 export function exhibitUsageCount(publications: Publication[], cat: Category, materialId: string): number {
   return publications.filter((p) => p.ipfsUrl !== '' && publicationSlotValue(p, cat) === materialId).length;

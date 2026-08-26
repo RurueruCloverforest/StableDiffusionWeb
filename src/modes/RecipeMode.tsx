@@ -1,7 +1,13 @@
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { CATEGORIES, categoryMeta } from '../state/categories';
-import { comboUsageCount, composePrompt, exhibitUsageCount, materialDisplayName } from '../state/prompt';
+import {
+  comboUsageCount,
+  composePrompt,
+  exhibitUsageCount,
+  materialDisplayName,
+  materialFallbackImage,
+} from '../state/prompt';
 import { useStore } from '../state/store';
 import { useCopy } from '../state/useCopy';
 
@@ -51,6 +57,7 @@ export function RecipeMode() {
             {CATEGORIES.map((cat) => {
               const materialId = editSlots[cat.id];
               const material = materials.find((m) => m.id === materialId);
+              const thumbSrc = material ? material.refImage ?? materialFallbackImage(material, publications) : null;
               return (
                 <button
                   key={cat.id}
@@ -60,8 +67,8 @@ export function RecipeMode() {
                 >
                   <div className="slot-row__cat">{cat.abbr}</div>
                   {material ? (
-                    material.refImage ? (
-                      <img src={material.refImage} alt="" className="slot-row__thumb slot-row__thumb--img" />
+                    thumbSrc ? (
+                      <img src={thumbSrc} alt="" className="slot-row__thumb slot-row__thumb--img" />
                     ) : (
                       <StripedThumb size="sm" className="slot-row__thumb" />
                     )
@@ -114,6 +121,7 @@ export function RecipeMode() {
                 {pickerItems.map((item) => {
                   const selected = editSlots[activeSlot] === item.id;
                   const usage = exhibitUsageCount(publications, activeSlot, item.id);
+                  const thumbSrc = item.refImage ?? materialFallbackImage(item, publications);
                   return (
                     <button
                       key={item.id}
@@ -121,8 +129,8 @@ export function RecipeMode() {
                       className={`picker__row ${selected ? 'is-selected' : ''}`}
                       onClick={() => dispatch({ type: 'SET_SLOT', category: activeSlot, materialId: item.id })}
                     >
-                      {item.refImage ? (
-                        <img src={item.refImage} alt="" className="picker__thumb picker__thumb--img" />
+                      {thumbSrc ? (
+                        <img src={thumbSrc} alt="" className="picker__thumb picker__thumb--img" />
                       ) : (
                         <StripedThumb size="md" className="picker__thumb" />
                       )}

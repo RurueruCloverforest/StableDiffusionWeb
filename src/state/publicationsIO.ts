@@ -19,8 +19,13 @@ export function buildPublicationsExport(publications: Publication[]): Publicatio
   };
 }
 
-// ipfsUrl があればそれが実世界での一意な識別子。未設定（下書き）はプロンプト文字列で識別する
-const publicationKey = (p: Publication) => p.ipfsUrl.trim() || `draft::${p.prompt.trim()}`;
+// ipfsUrl があればそれが実世界での一意な識別子。未設定（下書き）はプロンプト文字列で識別する。
+// どちらも空（プロンプトも貼っていない真っ新な下書き）は同一性を判定できないため null を返す
+function publicationKey(p: Publication): string | null {
+  if (p.ipfsUrl.trim()) return p.ipfsUrl.trim();
+  if (p.prompt.trim()) return `draft::${p.prompt.trim()}`;
+  return null;
+}
 
 /**
  * 既存の公開データとマージする。ipfsUrl（未設定ならプロンプト文字列）が既存と
@@ -30,23 +35,31 @@ const publicationKey = (p: Publication) => p.ipfsUrl.trim() || `draft::${p.promp
  * インポート元のIDをそのまま持ち越しても支障はない。
  * asReference=true の場合は「参照読み込み」として isReference を立てて追加する
  * （書き出し対象から除外されるだけで、展示等では通常の公開データと同様に使える）。
+ *
+ * ipfsUrl・プロンプトのどちらも未入力の下書き同士は同一性を判定できないため、
+ * 重複スキップの対象にせず常に追加する（放置すると、そうした下書きが複数あると
+ * 2件目以降が誤って「重複」としてスキップされてしまうため）。
  */
 export function mergeImportedPublications(
   existing: Publication[],
   incoming: Publication[],
   asReference: boolean,
 ): { merged: Publication[]; addedCount: number; skippedCount: number } {
-  const seen = new Set(existing.map(publicationKey));
+  const seen = new Set(
+    existing.map(publicationKey).filter((key): key is string => key !== null),
+  );
   const additions: Publication[] = [];
   let skippedCount = 0;
 
   incoming.forEach((p, i) => {
     const key = publicationKey(p);
-    if (seen.has(key)) {
-      skippedCount += 1;
-      return;
+    if (key !== null) {
+      if (seen.has(key)) {
+        skippedCount += 1;
+        return;
+      }
+      seen.add(key);
     }
-    seen.add(key);
     additions.push({
       ...p,
       id: `pub-${Date.now().toString(36)}-${i}-${Math.floor(Math.random() * 1000)}`,

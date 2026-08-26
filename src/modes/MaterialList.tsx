@@ -1,12 +1,12 @@
 import { MainHeader } from '../components/MainHeader';
 import { StripedThumb } from '../components/StripedThumb';
 import { categoryMeta } from '../state/categories';
-import { materialDisplayName } from '../state/prompt';
+import { materialDisplayName, materialFallbackImage } from '../state/prompt';
 import { useStore } from '../state/store';
 
 export function MaterialList() {
   const { state, dispatch } = useStore();
-  const { materials, matCat, editSlots } = state;
+  const { materials, publications, matCat, editSlots } = state;
   const meta = categoryMeta(matCat);
   const items = materials.filter((m) => m.category === matCat);
 
@@ -22,6 +22,7 @@ export function MaterialList() {
       <div className="material-grid">
         {items.map((item) => {
           const usedInRecipe = editSlots[matCat] === item.id;
+          const thumbSrc = item.refImage ?? materialFallbackImage(item, publications);
           return (
             <button
               key={item.id}
@@ -29,8 +30,8 @@ export function MaterialList() {
               className="material-card"
               onClick={() => dispatch({ type: 'OPEN_MAT_EDIT', id: item.id })}
             >
-              {item.refImage ? (
-                <img src={item.refImage} alt="" className="material-card__thumb material-card__thumb--img" />
+              {thumbSrc ? (
+                <img src={thumbSrc} alt="" className="material-card__thumb material-card__thumb--img" />
               ) : (
                 <StripedThumb className="material-card__thumb" label={meta.thumbLabel} />
               )}

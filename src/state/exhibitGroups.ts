@@ -1,4 +1,4 @@
-import { publicationSlotValue } from './prompt';
+import { pickFallbackImage, publicationSlotValue } from './prompt';
 import type { Category, Material, Publication } from '../types';
 
 /** 「状況/服装が未設定」グループを表すセンチネル。素材名と衝突しない専用文字列 */
@@ -40,10 +40,12 @@ export function groupByCategory(items: Publication[], materials: Material[], cat
     if (key === UNSET_GROUP) {
       entries.push({ id: UNSET_GROUP, label: '未設定', tags: [], refImage: null, items: list });
     } else {
-      // 代表として、そのグループの先頭エントリが参照している素材のタグ・参照画像を使う
+      // 代表として、そのグループの先頭エントリが参照している素材のタグ・参照画像を使う。
+      // 素材に参照画像が無ければ、このグループの公開エントリの画像を代わりに使う
       const firstId = publicationSlotValue(list[0], cat);
       const mat = firstId ? materials.find((m) => m.id === firstId) : undefined;
-      entries.push({ id: key, label: key, tags: mat?.tags ?? [], refImage: mat?.refImage ?? null, items: list });
+      const refImage = mat?.refImage ?? pickFallbackImage(key, list);
+      entries.push({ id: key, label: key, tags: mat?.tags ?? [], refImage, items: list });
     }
   }
 
